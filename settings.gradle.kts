@@ -3,4 +3,3 @@ plugins {
 }
 rootProject.name = "multi-poc"
 include("common")
-include("pylint")
