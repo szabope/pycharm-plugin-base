@@ -1,4 +1,4 @@
-package common.toolWindow
+package works.szabope.plugins.common.toolWindow
 
 import com.intellij.ide.projectView.PresentationData
 import com.intellij.navigation.NavigationItem
@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreeNode
+import kotlin.collections.iterator
 
 class ToolWindowTreeModel(defaultRootNodeText: String) : DefaultTreeModel(RootNode(defaultRootNodeText, emptyList())) {
 

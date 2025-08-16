@@ -1,5 +1,6 @@
-package common.configurable
+package works.szabope.plugins.common.configurable
 
+import androidx.annotation.VisibleForTesting
 import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
@@ -11,11 +12,16 @@ import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.Condition
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.ComponentPredicate
+import com.intellij.ui.layout.ValidationInfoBuilder
 import com.intellij.ui.layout.and
 import com.jetbrains.python.sdk.PySdkPopupFactory
 import com.jetbrains.python.sdk.noInterpreterMarker
@@ -43,11 +49,23 @@ data class ConfigurableConfiguration(
 
 @Suppress("UnstableApiUsage")
 abstract class GeneralConfigurable(
-    private val project: Project, private val config: ConfigurableConfiguration
+    private val project: Project, @VisibleForTesting val config: ConfigurableConfiguration
 ) : BoundSearchableConfigurable(config.displayName, config.helpTopic, config.id), Configurable.NoScroll {
 
     protected abstract val settings: Settings
     protected abstract val packageManager: PluginPackageManagementService
+    protected abstract val defaultArguments: String
+    abstract fun validateExecutable(builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton): ValidationInfo?
+    abstract fun validateSdk(builder: ValidationInfoBuilder, button: JBRadioButton): ValidationInfo?
+    abstract fun validateConfigFilePath(
+        builder: ValidationInfoBuilder,
+        field: TextFieldWithBrowseButton
+    ): ValidationInfo?
+
+    abstract fun validateProjectDirectory(
+        builder: ValidationInfoBuilder,
+        field: TextFieldWithBrowseButton
+    ): ValidationInfo?
 
     override fun createPanel(): DialogPanel {
         val pnl = panel {
@@ -84,7 +102,6 @@ abstract class GeneralConfigurable(
             Align.FILL
         )
         lateinit var result: Cell<JButton>
-        @Suppress("AssignedValueIsNeverRead")
         result = button(config.installButtonText) {
             val dataContext = DataManager.getInstance().getDataContext(result.component)
             val event = AnActionEvent.createEvent(
@@ -113,31 +130,21 @@ abstract class GeneralConfigurable(
             val pathToExecutableField = textFieldWithBrowseButton(
                 project = project, fileChooserDescriptor = executableChooserDescriptor
             )
-            val pathToExecutableComponent = pathToExecutableField.component
-            pathToExecutableField.align(Align.FILL).bindText(
-                getter = { settings.executablePath.orEmpty() },
-                setter = { settings.executablePath = it.trimToNull() },
-            ).validationOnInput { field ->
-                if (field.text.isBlank()) {
-                    return@validationOnInput warning(config.pickerDirectOptionEmptyWarning)
-                }
-                null
-            }.validationOnApply {
-                settings.validateExecutable(pathToExecutableComponent.text.trimToNull())?.also {
-                    return@validationOnApply error(it.message)
-                }
-                null
-            }.resizableColumn().enabledIf(executableOption.selected)
+            pathToExecutableField.comment(CommonBundle.message("settings.executable_path_option_marked_for_removal"))
+                .align(Align.FILL).bindText(
+                    getter = { settings.executablePath ?: "" },
+                    setter = { settings.executablePath = it.trimToNull() },
+                ).validationOnInput { field ->
+                    if (field.text.isBlank()) {
+                        return@validationOnInput warning(config.pickerDirectOptionEmptyWarning)
+                    }
+                    null
+                }.validationOnApply(::validateExecutable).resizableColumn().enabledIf(executableOption.selected)
         }.layout(RowLayout.PARENT_GRID)
         row {
             val sdkOption = radioButton(config.pickerSdkOptionTitle, USE_PROJECT_SDK).enabled(
                 project.pythonSdk != null
-            ).validationOnInput {
-                settings.validateSdk()?.also {
-                    return@validationOnInput error(it.message)
-                }
-                null
-            }
+            ).validationOnInput(::validateSdk)
             sdkOption.component
             installButton(sdkOption.selected)
         }.rowComment(
@@ -154,12 +161,7 @@ abstract class GeneralConfigurable(
         textFieldWithBrowseButton(project = project).align(Align.FILL).bindText(
             getter = { settings.configFilePath.orEmpty() },
             setter = { settings.configFilePath = it.trimToNull() },
-        ).validationOnApply { field ->
-            settings.validateConfigFile(field.text.trimToNull())?.also {
-                return@validationOnApply error(it.message)
-            }
-            null
-        }
+        ).validationOnApply(::validateConfigFilePath)
     }.rowComment(
         config.configFilePickerRowComment, maxLineLength = MAX_LINE_LENGTH_WORD_WRAP
     ).layout(RowLayout.PARENT_GRID)
@@ -167,8 +169,8 @@ abstract class GeneralConfigurable(
     private fun Panel.argumentsField() = row {
         label(CommonBundle.message("settings.arguments.label"))
         textField().align(Align.FILL).bindText(
-            getter = { settings.arguments.orEmpty() },
-            setter = { settings.arguments = it.trimToNull() },
+            getter = { settings.arguments ?: defaultArguments },
+            setter = { settings.arguments = it.trim() },
         )
     }.rowComment(
         CommonBundle.message("settings.arguments.hint_recommended", config.recommendedArguments),
@@ -178,23 +180,17 @@ abstract class GeneralConfigurable(
     private fun Panel.projectDirectoryPicker() = row {
         label(CommonBundle.message("settings.project_directory.label"))
         val directoryChooserDescriptor = FileChooserDescriptor(false, true, false, false, false, false)
-        val projectDirectoryField = textFieldWithBrowseButton(
+        textFieldWithBrowseButton(
             project = project, fileChooserDescriptor = directoryChooserDescriptor
-        )
-        projectDirectoryField.align(Align.FILL).bindText(
-            getter = { settings.projectDirectory.orEmpty() },
-            setter = { settings.projectDirectory = it.trimToNull() },
+        ).align(Align.FILL).bindText(
+            getter = { settings.projectDirectory ?: project.guessProjectDir()?.path ?: "" },
+            setter = { settings.projectDirectory = it },
         ).validationOnInput { field ->
             if (field.text.isBlank()) {
                 return@validationOnInput warning(CommonBundle.message("settings.project_directory.empty_warning"))
             }
             null
-        }.validationOnApply {
-            settings.validateProjectDirectory(projectDirectoryField.component.text.trimToNull())?.also {
-                return@validationOnApply error(it.message)
-            }
-            null
-        }
+        }.validationOnApply(::validateProjectDirectory)
     }.layout(RowLayout.PARENT_GRID)
 
     private fun Panel.excludeNonProjectFilesCheckbox() = row {

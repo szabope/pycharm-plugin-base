@@ -1,4 +1,4 @@
-package common.toolWindow
+package works.szabope.plugins.common.toolWindow
 
 import works.szabope.plugins.common.services.SeverityConfig
 

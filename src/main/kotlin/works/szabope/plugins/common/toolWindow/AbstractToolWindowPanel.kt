@@ -1,4 +1,4 @@
-package common.toolWindow
+package works.szabope.plugins.common.toolWindow
 
 import com.intellij.ide.ActivityTracker
 import com.intellij.ide.DefaultTreeExpander
@@ -24,7 +24,8 @@ abstract class AbstractToolWindowPanel(private val project: Project, private val
     SimpleToolWindowPanel(false, true) {
 
     private val treeExpander = DefaultTreeExpander(tree)
-    private val treeService: ITreeService get() = ITreeService.getInstance(project)
+    abstract val treeService: ITreeService
+    abstract val settings: Settings
 
     fun init(toolWindowId: String, mainActionGroupId: String, scrollSourceId: String) {
         treeService.install(tree)
@@ -35,9 +36,9 @@ abstract class AbstractToolWindowPanel(private val project: Project, private val
         border = JBUI.Borders.empty(1)
         addAutoScrollToSource(object : AutoScrollConfig {
             override var isAutoScrollToSource
-                get() = Settings.getInstance(project).isAutoScrollToSource
+                get() = settings.isAutoScrollToSource
                 set(value) {
-                    Settings.getInstance(project).isAutoScrollToSource = value
+                    settings.isAutoScrollToSource = value
                 }
             override val tree
                 get() = this@AbstractToolWindowPanel.tree

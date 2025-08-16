@@ -1,12 +1,12 @@
-package common.services
+package works.szabope.plugins.common.services
 
 import com.intellij.openapi.vfs.VirtualFile
-import works.szabope.plugins.common.services.tool.AbstractToolOutputHandler
+import works.szabope.plugins.common.services.tool.ToolOutputHandler
 
 interface ScanService<I : ToolResultItem> {
     fun scan(
         targets: Collection<VirtualFile>,
         configuration: ImmutableSettingsData,
-        resultHandler: AbstractToolOutputHandler<I>
+        resultHandler: ToolOutputHandler<I>
     )
 }

@@ -1,4 +1,4 @@
-package common.toolWindow
+package works.szabope.plugins.common.toolWindow
 
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.treeStructure.Tree

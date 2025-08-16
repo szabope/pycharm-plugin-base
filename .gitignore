@@ -5,12 +5,9 @@ build/
 !**/src/test/**/build/
 
 ### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+/.idea
 *.iws
-*.iml
+/*.iml
 *.ipr
 out/
 !**/src/main/**/out/
@@ -43,5 +40,4 @@ bin/
 
 ### Mac OS ###
 .DS_Store
-.idea
 .intellijPlatform

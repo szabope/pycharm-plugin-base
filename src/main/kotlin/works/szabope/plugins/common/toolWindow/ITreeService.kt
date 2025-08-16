@@ -1,7 +1,5 @@
-package common.toolWindow
+package works.szabope.plugins.common.toolWindow
 
-import com.intellij.openapi.components.service
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.treeStructure.Tree
 
@@ -13,9 +11,4 @@ interface ITreeService {
     fun setSeverityLevelDisplayed(level: String, selected: Boolean)
     fun add(item: TreeModelDataItem)
     fun install(tree: Tree)
-
-    companion object {
-        @JvmStatic
-        fun getInstance(project: Project): ITreeService = project.service()
-    }
 }

@@ -1,4 +1,4 @@
-package common.services
+package works.szabope.plugins.common.services
 
 interface SettingsData : BasicSettingsData {
     val useProjectSdk: Boolean

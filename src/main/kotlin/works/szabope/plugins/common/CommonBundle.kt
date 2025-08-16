@@ -1,4 +1,4 @@
-package common
+package works.szabope.plugins.common
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.NonNls

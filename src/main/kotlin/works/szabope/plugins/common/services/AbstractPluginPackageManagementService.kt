@@ -1,13 +1,17 @@
-package common.services
+package works.szabope.plugins.common.services
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Version
 import com.intellij.remote.RemoteSdkProperties
+import com.jetbrains.python.getOrThrow
 import com.jetbrains.python.packaging.PyExecutionException
 import com.jetbrains.python.packaging.PyPackage
 import com.jetbrains.python.packaging.PyRequirement
-import com.jetbrains.python.packaging.common.PythonSimplePackageSpecification
+import com.jetbrains.python.packaging.common.PythonPackage
+import com.jetbrains.python.packaging.common.PythonRepositoryPackageSpecification
 import com.jetbrains.python.packaging.management.PythonPackageManager
+import com.jetbrains.python.packaging.management.findPackageSpecification
+import com.jetbrains.python.packaging.management.toInstallRequest
 import com.jetbrains.python.sdk.PythonSdkUtil
 import com.jetbrains.python.sdk.pythonSdk
 
@@ -26,15 +30,17 @@ abstract class AbstractPluginPackageManagementService : PluginPackageManagementS
         return PythonSdkUtil.isVirtualEnv(sdk) || PythonSdkUtil.isCondaVirtualEnv(sdk)
     }
 
-    override suspend fun reloadPackages() = try {
-        getPackageManager()?.reloadPackages()
-    } catch (e: Exception) {
-        // e.g. org.apache.hc.client5.http.HttpHostConnectException thrown when docker (in given SDK) is unavailable
-        Result.failure(e)
+    override suspend fun reloadPackages(): Result<List<PythonPackage>>? {
+        return try {
+            getPackageManager()?.reloadPackages()?.getOrThrow()?.let { Result.success(it) }
+        } catch (e: Exception) {
+            // e.g. org.apache.hc.client5.http.HttpHostConnectException thrown when docker (in given SDK) is unavailable
+            Result.failure(e)
+        }
     }
 
     override fun getInstalledVersion(): Version? {
-        return getPackageManager()?.installedPackages?.firstOrNull { it.name == getRequirement().name }?.version?.let {
+        return getPackageManager()?.findPackageSpecification(getRequirement().name)?.versionSpec?.version?.let {
             Version.parseVersion(
                 it
             )
@@ -66,11 +72,11 @@ abstract class AbstractPluginPackageManagementService : PluginPackageManagementS
         val packageManager = getPackageManager()!!
         val requirement = getRequirement()
         val versionSpec = requirement.versionSpecs.firstOrNull()
-        val specification = PythonSimplePackageSpecification(
-            requirement.name, versionSpec?.version, null, versionSpec?.relation
+        val specification = PythonRepositoryPackageSpecification(
+            packageManager.repositoryManager.repositories.first(), requirement.name, versionSpec
         )
         try {
-            packageManager.installPackage(specification, options = emptyList(), true).getOrThrow()
+            packageManager.installPackage(specification.toInstallRequest(), options = emptyList()).getOrThrow()
         } catch (ex: PyExecutionException) {
             return Result.failure(ex)
         }
