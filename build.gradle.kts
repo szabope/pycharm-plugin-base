@@ -49,7 +49,7 @@ publishing {
     repositories {
         maven {
             name = "github"
-            url = uri("https://github.com/szabope/pycharm-plugin-base")
+            url = uri("https://maven.pkg.github.com/szabope/pycharm-plugin-base")
             credentials {
                 username = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME")
                 password = project.findProperty("gpr.key") as String? ?: System.getenv("TOKEN")
