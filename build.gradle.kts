@@ -45,6 +45,16 @@ dependencies {
     }
 }
 
+tasks {
+    register("sourcesJar", Jar::class) {
+        from(sourceSets["main"].allJava)
+        archiveClassifier = "sources"
+    }
+    wrapper {
+        gradleVersion = providers.gradleProperty("gradleVersion").get()
+    }
+}
+
 publishing {
     repositories {
         maven {
@@ -59,12 +69,7 @@ publishing {
     publications {
         register<MavenPublication>("gpr") {
             from(components["java"])
+            artifact(tasks["sourcesJar"])
         }
-    }
-}
-
-tasks {
-    wrapper {
-        gradleVersion = providers.gradleProperty("gradleVersion").get()
     }
 }
