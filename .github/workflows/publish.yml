@@ -4,6 +4,8 @@
 name: Gradle Package
 
 on:
+  # Enable manual trigger
+  workflow_dispatch:
   release:
     types: [created]
 
