@@ -22,11 +22,17 @@ kotlin {
 
 repositories {
     mavenCentral()
-
     intellijPlatform {
         defaultRepositories()
     }
+    maven {
+        url = uri("https://www.jetbrains.com/intellij-repository/releases")
+    }
 }
+
+// This is not a plugin so let's skip tasks that assume it is
+tasks.findByName("prepareJarSearchableOptions")?.enabled = false
+tasks.findByName("jarSearchableOptions")?.enabled = false
 
 dependencies {
     testImplementation(libs.junit)
@@ -43,10 +49,6 @@ dependencies {
         // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file for plugin from JetBrains Marketplace.
         plugins(providers.gradleProperty("platformPlugins").map { it.split(',') })
     }
-}
-
-intellijPlatform {
-    buildSearchableOptions = false
 }
 
 // Configure Gradle Changelog Plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
