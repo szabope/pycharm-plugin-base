@@ -30,13 +30,7 @@ repositories {
     }
 }
 
-// This is not a plugin so let's skip tasks that assume it is
-tasks.findByName("prepareJarSearchableOptions")?.enabled = false
-tasks.findByName("jarSearchableOptions")?.enabled = false
-
 dependencies {
-    testImplementation(libs.junit)
-    testImplementation(libs.mockk)
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
         create(
@@ -49,14 +43,6 @@ dependencies {
         // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file for plugin from JetBrains Marketplace.
         plugins(providers.gradleProperty("platformPlugins").map { it.split(',') })
     }
-}
-
-// Configure Gradle Changelog Plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
-changelog {
-    groups.empty()
-    introduction = "Common base for integrating python CQ tools into Jetbrains IDEs."
-    versionPrefix = "common/"
-    repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")
 }
 
 publishing {

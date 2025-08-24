@@ -1,0 +1,10 @@
+<!-- THIS IS NOT A REAL PLUGIN | This file is only here to make intellijPlatform plugin happy -->
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <id>works.szabope.plugins.common</id>
+    <name>IJP Py CQ Plugins Common Base</name>
+    <vendor url="https://github.com/szabope">Peter Szabo</vendor>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.python</depends>
+</idea-plugin>
