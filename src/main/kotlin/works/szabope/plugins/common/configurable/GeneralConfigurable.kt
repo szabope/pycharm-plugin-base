@@ -30,6 +30,7 @@ import works.szabope.plugins.common.CommonBundle
 import works.szabope.plugins.common.services.PluginPackageManagementService
 import works.szabope.plugins.common.services.Settings
 import works.szabope.plugins.common.trimToNull
+import java.io.File
 import javax.swing.JButton
 
 data class ConfigurableConfiguration(
@@ -49,7 +50,7 @@ data class ConfigurableConfiguration(
 
 @Suppress("UnstableApiUsage")
 abstract class GeneralConfigurable(
-    private val project: Project, @VisibleForTesting val config: ConfigurableConfiguration
+    private val project: Project, @param:VisibleForTesting val config: ConfigurableConfiguration
 ) : BoundSearchableConfigurable(config.displayName, config.helpTopic, config.id), Configurable.NoScroll {
 
     protected abstract val settings: Settings
@@ -58,14 +59,21 @@ abstract class GeneralConfigurable(
     abstract fun validateExecutable(builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton): ValidationInfo?
     abstract fun validateSdk(builder: ValidationInfoBuilder, button: JBRadioButton): ValidationInfo?
     abstract fun validateConfigFilePath(
-        builder: ValidationInfoBuilder,
-        field: TextFieldWithBrowseButton
+        builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton
     ): ValidationInfo?
 
-    abstract fun validateProjectDirectory(
-        builder: ValidationInfoBuilder,
-        field: TextFieldWithBrowseButton
-    ): ValidationInfo?
+    fun validateProjectDirectory(builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton): ValidationInfo? {
+        val path = field.text.trimToNull() ?: return null
+        require(path.isNotBlank())
+        val file = File(path)
+        if (!file.exists()) {
+            return builder.error(CommonBundle.message("configuration.path_to_project_directory.not_exist"))
+        }
+        if (!file.isDirectory) {
+            return builder.error(CommonBundle.message("configuration.path_to_project_directory.is_not_directory"))
+        }
+        return null
+    }
 
     override fun createPanel(): DialogPanel {
         val pnl = panel {
