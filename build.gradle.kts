@@ -20,6 +20,11 @@ kotlin {
     }
 }
 
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
 repositories {
     mavenCentral()
     intellijPlatform {
@@ -46,10 +51,6 @@ dependencies {
 }
 
 tasks {
-    register("sourcesJar", Jar::class) {
-        from(sourceSets["main"].allJava)
-        archiveClassifier = "sources"
-    }
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
     }
@@ -69,7 +70,6 @@ publishing {
     publications {
         register<MavenPublication>("gpr") {
             from(components["java"])
-            artifact(tasks["sourcesJar"])
         }
     }
 }
