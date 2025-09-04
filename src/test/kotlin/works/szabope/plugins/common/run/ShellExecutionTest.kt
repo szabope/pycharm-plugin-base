@@ -6,12 +6,14 @@ import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ScriptRunnerUtil
 import com.intellij.execution.process.ScriptRunnerUtil.STDERR_OUTPUT_KEY_FILTER
 import com.intellij.openapi.diagnostic.thisLogger
-import com.intellij.openapi.util.Condition
 import com.intellij.openapi.util.Key
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.io.delete
+import okio.Path.Companion.toPath
+import java.nio.file.attribute.PosixFilePermission
+import java.nio.file.attribute.PosixFilePermissions
+import kotlin.io.path.pathString
 import kotlin.io.path.writeText
 
 class ShellExecutionTest : BasePlatformTestCase() {
@@ -34,12 +36,23 @@ class ShellExecutionTest : BasePlatformTestCase() {
 
     //TODO: test on windows
     fun `test script runner util`() {
-        val tempFile = kotlin.io.path.createTempFile(prefix = "script_runner_", suffix = ".sh")
+        val tempFile = kotlin.io.path.createTempFile(
+            directory = project.basePath!!.toPath(true).toNioPath(),
+            prefix = "script_runner_",
+            suffix = ".sh",
+            PosixFilePermissions.asFileAttribute(
+                setOf(
+                    PosixFilePermission.OWNER_READ,
+                    PosixFilePermission.OWNER_WRITE,
+                    PosixFilePermission.OWNER_EXECUTE
+                )
+            )
+        )
         try {
             tempFile.toFile().deleteOnExit()
             tempFile.writeText(">&2 echo 8")
-            val tempVirtualFile = VirtualFileManager.getInstance().refreshAndFindFileByNioPath(tempFile)
-            val handler = ScriptRunnerUtil.execute("/bin/bash", null, tempVirtualFile, emptyArray<String>())
+//            val tempVirtualFile = VirtualFileManager.getInstance().refreshAndFindFileByNioPath(tempFile)
+            val handler = ScriptRunnerUtil.execute(tempFile.pathString, null, null, emptyArray<String>())
             val out = ScriptRunnerUtil.getProcessOutput(handler, STDERR_OUTPUT_KEY_FILTER, 1000)
             assertEquals("8\n", out)
         } finally {
