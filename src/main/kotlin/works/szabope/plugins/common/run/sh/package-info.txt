@@ -1,0 +1,5 @@
+/**
+ * Partially reimplementing Sh plugin (com.intellij.sh), because {@link com.intellij.sh.run.ShRunConfigurationProfileState#createCommandLineForScript}
+ * turns console mode off, which results in stderr being redirected to stdout. The class is final.
+ */
+package works.szabope.plugins.common.run.sh;
