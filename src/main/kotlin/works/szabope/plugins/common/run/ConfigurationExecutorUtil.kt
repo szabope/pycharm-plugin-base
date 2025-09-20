@@ -43,4 +43,4 @@ fun execute(environment: ExecutionEnvironment) = callbackFlow {
         processHandler.addProcessListener(processListener)
     }
     awaitClose {}
-}.flowOn(Dispatchers.IO).buffer(capacity = Channel.UNLIMITED).runCatching { this }
+}.flowOn(Dispatchers.IO).buffer(capacity = Channel.UNLIMITED)
