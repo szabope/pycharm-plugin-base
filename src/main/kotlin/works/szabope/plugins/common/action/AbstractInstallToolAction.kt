@@ -10,19 +10,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import works.szabope.plugins.common.services.PluginPackageManagementService
 
-class InstallationToolActionConfig(val messageInstalling: String, val messageInstalled: String)
-
-abstract class AbstractInstallToolAction(private val config: InstallationToolActionConfig) : DumbAwareAction() {
+abstract class AbstractInstallToolAction(private val messageInstalling: String, private val messageInstalled: String) :
+    DumbAwareAction() {
 
     abstract fun getPackageManager(project: Project): PluginPackageManagementService
     abstract fun handleFailure(failure: Throwable)
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        runWithModalProgressBlocking(project, config.messageInstalling) {
+        runWithModalProgressBlocking(project, messageInstalling) {
             withContext(Dispatchers.EDT) {
                 getPackageManager(project).installRequirement().onFailure(::handleFailure).onSuccess {
-                    notifyPanel(project, config.messageInstalled)
+                    notifyPanel(project, messageInstalled)
                 }
             }
         }

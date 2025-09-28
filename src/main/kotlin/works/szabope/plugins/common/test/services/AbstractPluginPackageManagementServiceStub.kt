@@ -2,11 +2,12 @@ package works.szabope.plugins.common.test.services
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.Sdk
-import com.intellij.openapi.util.Version
 import com.intellij.webcore.packaging.InstalledPackage
+import com.jetbrains.python.packaging.PyPackage
 import com.jetbrains.python.packaging.common.PythonPackage
 import com.jetbrains.python.sdk.pythonSdk
 import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
+import works.szabope.plugins.common.services.PluginPackageManagementService
 import java.util.*
 import kotlin.Result.Companion.success
 
@@ -16,12 +17,15 @@ abstract class AbstractPluginPackageManagementServiceStub(override val project: 
     // support parallel runs
     private val installedPackagesPerSdk = WeakHashMap<Sdk, MutableList<InstalledPackage>>()
 
-    override fun getInstalledVersion(): Version? {
-        return getInstalledPackages().firstOrNull { it.name == getRequirement().name }?.version?.let {
-            Version.parseVersion(
-                it
+    override fun checkInstalledRequirement(): Result<Unit> {
+        val installedPackage =
+            getInstalledPackages().firstOrNull { it.name == getRequirement().name } ?: return Result.failure(
+                PluginPackageManagementService.PluginPackageManagementException.PackageNotInstalledException()
             )
+        if (!getRequirement().match(PyPackage(installedPackage.name, installedPackage.version ?: ""))) {
+            return Result.failure(PluginPackageManagementService.PluginPackageManagementException.PackageVersionObsoleteException())
         }
+        return success(Unit)
     }
 
     override suspend fun installRequirement(): Result<Unit> {

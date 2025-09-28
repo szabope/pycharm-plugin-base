@@ -2,16 +2,20 @@
 
 package works.szabope.plugins.common.services
 
-import com.intellij.openapi.util.Version
+import com.jetbrains.python.packaging.PyRequirement
 import com.jetbrains.python.packaging.common.PythonPackage
 
 interface PluginPackageManagementService {
     fun canInstall(): Boolean
     fun isLocalEnvironment(): Boolean
     suspend fun reloadPackages(): Result<List<PythonPackage>>?
-    fun getInstalledVersion(): Version?
-    fun isVersionSupported(version: Version): Boolean
-    fun isInstalled(): Boolean
     fun isWSL(): Boolean
+    fun checkInstalledRequirement(): Result<Unit>
     suspend fun installRequirement(): Result<Unit>
+    fun getRequirement(): PyRequirement
+
+    sealed class PluginPackageManagementException : RuntimeException() {
+        class PackageNotInstalledException : PluginPackageManagementException()
+        class PackageVersionObsoleteException : PluginPackageManagementException()
+    }
 }

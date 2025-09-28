@@ -8,8 +8,6 @@ import com.intellij.execution.runners.AsyncProgramRunner
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.ui.RunContentDescriptor
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ModalityState
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.sh.run.ShRunConfiguration
 import org.jetbrains.concurrency.AsyncPromise
 import org.jetbrains.concurrency.Promise
@@ -21,18 +19,14 @@ class PluginShRunner : AsyncProgramRunner<RunnerSettings>() {
 
     override fun execute(environment: ExecutionEnvironment, state: RunProfileState): Promise<RunContentDescriptor?> {
         val promise: AsyncPromise<RunContentDescriptor?> = AsyncPromise()
-        ApplicationManager.getApplication().invokeAndWait {
-            try {
-                FileDocumentManager.getInstance().saveAllDocuments()
+        try {
+//                FileDocumentManager.getInstance().saveAllDocuments() //TODO: move it to more specific place
+            ApplicationManager.getApplication().executeOnPooledThread {
                 val executionResult = state.execute(environment.executor, this)
-                ApplicationManager.getApplication()
-                    .invokeLater(
-                        { promise.setResult(executionResult?.let(RunContentDescriptorFactory::newFakeDescriptor)) },
-                        ModalityState.any()
-                    )
-            } catch (e: ExecutionException) {
-                promise.setError(e)
+                promise.setResult(executionResult?.let(RunContentDescriptorFactory::newFakeDescriptor))
             }
+        } catch (e: ExecutionException) {
+            promise.setError(e)
         }
         return promise
     }

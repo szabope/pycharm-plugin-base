@@ -37,6 +37,7 @@ data class ConfigurableConfiguration(
     val displayName: String,
     val helpTopic: String,
     val id: String,
+    val detectActionId: String,
     val installActionId: String,
     val installButtonText: String,
     val pickerTitle: String,
@@ -67,10 +68,10 @@ abstract class GeneralConfigurable(
         require(path.isNotBlank())
         val file = File(path)
         if (!file.exists()) {
-            return builder.error(CommonBundle.message("configuration.path_to_project_directory.not_exist"))
+            return builder.error(CommonBundle.message("configurable.path_to_project_directory.not_exist"))
         }
         if (!file.isDirectory) {
-            return builder.error(CommonBundle.message("configuration.path_to_project_directory.is_not_directory"))
+            return builder.error(CommonBundle.message("configurable.path_to_project_directory.is_not_directory"))
         }
         return null
     }
@@ -115,9 +116,8 @@ abstract class GeneralConfigurable(
             val event = AnActionEvent.createEvent(
                 action, dataContext, null, ActionPlaces.UNKNOWN, ActionUiKind.NONE, null
             )
-            ActionUtil.invokeAction(action, event) {
-                buttonClicked.set(false)
-            }
+            ActionUtil.performAction(action, event)
+            buttonClicked.set(false)
         }.enabledIf(object : ComponentPredicate() {
             override fun invoke() = !buttonClicked.get() && packageManager.canInstall()
             override fun addListener(listener: (Boolean) -> Unit) {
@@ -138,17 +138,22 @@ abstract class GeneralConfigurable(
             val pathToExecutableField = textFieldWithBrowseButton(
                 project = project, fileChooserDescriptor = executableChooserDescriptor
             )
-            pathToExecutableField.comment(CommonBundle.message("settings.executable_path_option_marked_for_removal"))
-                .align(Align.FILL).bindText(
-                    getter = { settings.executablePath ?: "" },
-                    setter = { settings.executablePath = it.trimToNull() },
-                ).validationOnInput { field ->
-                    if (field.text.isBlank()) {
-                        return@validationOnInput warning(config.pickerDirectOptionEmptyWarning)
-                    }
-                    null
-                }.validationOnApply(::validateExecutable).resizableColumn().enabledIf(executableOption.selected)
-        }.layout(RowLayout.PARENT_GRID)
+            pathToExecutableField.align(Align.FILL).bindText(
+                getter = { settings.executablePath },
+                setter = { settings.executablePath = it.trim() },
+            ).validationOnInput { field ->
+                if (field.text.isBlank()) {
+                    return@validationOnInput warning(config.pickerDirectOptionEmptyWarning)
+                }
+                null
+            }.validationOnApply(::validateExecutable).resizableColumn().enabledIf(executableOption.selected)
+            //TODO: remove, it's pointless
+            val detectAction = ActionManager.getInstance().getAction(config.detectActionId)
+            button(
+                CommonBundle.message("configurable.executable.detect_button.label"), detectAction
+            ).align(AlignX.RIGHT + AlignY.CENTER)
+        }.rowComment(CommonBundle.message("configurable.executable_path_option_marked_for_removal"))
+            .layout(RowLayout.PARENT_GRID)
         row {
             val sdkOption = radioButton(config.pickerSdkOptionTitle, USE_PROJECT_SDK).enabled(
                 project.pythonSdk != null
@@ -157,7 +162,7 @@ abstract class GeneralConfigurable(
             installButton(sdkOption.selected)
         }.rowComment(
             comment = if (!packageManager.isLocalEnvironment()) {
-                CommonBundle.message("settings.system_wide_installation_warning")
+                CommonBundle.message("configurable.system_wide_installation_warning")
             } else {
                 ""
             }, maxLineLength = MAX_LINE_LENGTH_WORD_WRAP
@@ -165,28 +170,28 @@ abstract class GeneralConfigurable(
     }.bind(getter = { settings.useProjectSdk }, setter = { settings.useProjectSdk = it })
 
     private fun Panel.configFilePicker() = row {
-        label(CommonBundle.message("settings.config_file.label"))
+        label(CommonBundle.message("configurable.config_file.label"))
         textFieldWithBrowseButton(project = project).align(Align.FILL).bindText(
-            getter = { settings.configFilePath.orEmpty() },
-            setter = { settings.configFilePath = it.trimToNull() },
+            getter = { settings.configFilePath },
+            setter = { settings.configFilePath = it.trim() },
         ).validationOnApply(::validateConfigFilePath)
     }.rowComment(
         config.configFilePickerRowComment, maxLineLength = MAX_LINE_LENGTH_WORD_WRAP
     ).layout(RowLayout.PARENT_GRID)
 
     private fun Panel.argumentsField() = row {
-        label(CommonBundle.message("settings.arguments.label"))
+        label(CommonBundle.message("configurable.arguments.label"))
         textField().align(Align.FILL).bindText(
-            getter = { settings.arguments ?: defaultArguments },
+            getter = { settings.arguments.ifBlank { defaultArguments } },
             setter = { settings.arguments = it.trim() },
         )
     }.rowComment(
-        CommonBundle.message("settings.arguments.hint_recommended", config.recommendedArguments),
+        CommonBundle.message("configurable.arguments.hint_recommended", config.recommendedArguments),
         maxLineLength = MAX_LINE_LENGTH_WORD_WRAP
     ).layout(RowLayout.PARENT_GRID)
 
     private fun Panel.projectDirectoryPicker() = row {
-        label(CommonBundle.message("settings.project_directory.label"))
+        label(CommonBundle.message("configurable.project_directory.label"))
         val directoryChooserDescriptor = FileChooserDescriptor(false, true, false, false, false, false)
         textFieldWithBrowseButton(
             project = project, fileChooserDescriptor = directoryChooserDescriptor
@@ -195,14 +200,14 @@ abstract class GeneralConfigurable(
             setter = { settings.projectDirectory = it },
         ).validationOnInput { field ->
             if (field.text.isBlank()) {
-                return@validationOnInput warning(CommonBundle.message("settings.project_directory.empty_warning"))
+                return@validationOnInput warning(CommonBundle.message("configurable.project_directory.empty_warning"))
             }
             null
         }.validationOnApply(::validateProjectDirectory)
     }.layout(RowLayout.PARENT_GRID)
 
     private fun Panel.excludeNonProjectFilesCheckbox() = row {
-        checkBox(CommonBundle.message("settings.exclude_non_project_files.label")).bindSelected(
+        checkBox(CommonBundle.message("configurable.exclude_non_project_files.label")).bindSelected(
             getter = { settings.excludeNonProjectFiles },
             setter = { settings.excludeNonProjectFiles = it })
     }.layout(RowLayout.PARENT_GRID)

@@ -14,6 +14,7 @@ import com.intellij.platform.eel.EelDescriptor
 import com.intellij.platform.eel.provider.LocalEelDescriptor
 import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.getEelDescriptor
+import com.intellij.util.io.BaseDataReader
 import com.intellij.util.io.BaseOutputReader
 import java.nio.file.Path
 
@@ -37,9 +38,12 @@ class ShRunConfigurationProfileState(
     @Throws(ExecutionException::class)
     private fun createProcessHandler(commandLine: GeneralCommandLine): ProcessHandler {
         return object : KillableProcessHandler(commandLine) {
-            override fun readerOptions(): BaseOutputReader.Options {
-                return BaseOutputReader.Options.BLOCKING
+            val FULL_LINES_READER_OPTIONS: BaseOutputReader.Options = object : BaseOutputReader.Options() {
+                override fun policy() = BaseDataReader.SleepingPolicy.NON_BLOCKING
+                override fun sendIncompleteLines() = false
             }
+
+            override fun readerOptions() = FULL_LINES_READER_OPTIONS
         }
     }
 

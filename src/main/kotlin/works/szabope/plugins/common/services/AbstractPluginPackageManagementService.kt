@@ -1,28 +1,25 @@
 package works.szabope.plugins.common.services
 
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.Version
 import com.intellij.remote.RemoteSdkProperties
 import com.jetbrains.python.getOrThrow
 import com.jetbrains.python.packaging.PyExecutionException
 import com.jetbrains.python.packaging.PyPackage
-import com.jetbrains.python.packaging.PyRequirement
 import com.jetbrains.python.packaging.common.PythonPackage
 import com.jetbrains.python.packaging.common.PythonRepositoryPackageSpecification
 import com.jetbrains.python.packaging.management.PythonPackageManager
-import com.jetbrains.python.packaging.management.findPackageSpecification
+import com.jetbrains.python.packaging.management.getInstalledPackageSnapshot
 import com.jetbrains.python.packaging.management.toInstallRequest
 import com.jetbrains.python.sdk.PythonSdkUtil
 import com.jetbrains.python.sdk.pythonSdk
 
-@Suppress("UnstableApiUsage")
 abstract class AbstractPluginPackageManagementService : PluginPackageManagementService {
 
     protected abstract val project: Project
 
     override fun canInstall(): Boolean {
         val sdk = project.pythonSdk ?: return false
-        return !PythonSdkUtil.isRemote(sdk) && !isInstalled()
+        return !PythonSdkUtil.isRemote(sdk) && checkInstalledRequirement().isFailure
     }
 
     override fun isLocalEnvironment(): Boolean {
@@ -39,33 +36,20 @@ abstract class AbstractPluginPackageManagementService : PluginPackageManagementS
         }
     }
 
-    override fun getInstalledVersion(): Version? {
-        return getPackageManager()?.findPackageSpecification(getRequirement().name)?.versionSpec?.version?.let {
-            Version.parseVersion(
-                it
-            )
-        }
-    }
-
-    override fun isVersionSupported(version: Version): Boolean {
-        return getRequirement().match(
-            mutableListOf(
-                PyPackage(
-                    getRequirement().name, "${version.major}.${version.minor}.${version.bugfix}"
-                )
-            )
-        ) != null
-    }
-
     override fun isWSL() =
         (project.pythonSdk?.sdkAdditionalData as? RemoteSdkProperties)?.sdkId?.startsWith("WSL") ?: false
 
-    fun getPackageManager(): PythonPackageManager? {
-        return project.pythonSdk?.let { PythonPackageManager.forSdk(project, it) }
-    }
-
-    override fun isInstalled(): Boolean {
-        return getInstalledVersion() != null
+    override fun checkInstalledRequirement(): Result<Unit> {
+        val requirement = getRequirement()
+        val packageManager =
+            getPackageManager() ?: return Result.failure(UnsupportedOperationException("No package manager found"))
+        val installedPackage = packageManager.getInstalledPackageSnapshot(requirement.name) ?: return Result.failure(
+            PluginPackageManagementService.PluginPackageManagementException.PackageNotInstalledException()
+        )
+        if (!getRequirement().match(PyPackage(installedPackage.name, installedPackage.version))) {
+            return Result.failure(PluginPackageManagementService.PluginPackageManagementException.PackageVersionObsoleteException())
+        }
+        return Result.success(Unit)
     }
 
     override suspend fun installRequirement(): Result<Unit> {
@@ -83,5 +67,7 @@ abstract class AbstractPluginPackageManagementService : PluginPackageManagementS
         return Result.success(Unit)
     }
 
-    protected abstract fun getRequirement(): PyRequirement
+    private fun getPackageManager(): PythonPackageManager? {
+        return project.pythonSdk?.let { PythonPackageManager.forSdk(project, it) }
+    }
 }
