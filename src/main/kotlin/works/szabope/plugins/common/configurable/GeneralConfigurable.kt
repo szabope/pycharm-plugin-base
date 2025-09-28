@@ -37,7 +37,6 @@ data class ConfigurableConfiguration(
     val displayName: String,
     val helpTopic: String,
     val id: String,
-    val detectActionId: String,
     val installActionId: String,
     val installButtonText: String,
     val pickerTitle: String,
@@ -147,11 +146,6 @@ abstract class GeneralConfigurable(
                 }
                 null
             }.validationOnApply(::validateExecutable).resizableColumn().enabledIf(executableOption.selected)
-            //TODO: remove, it's pointless
-            val detectAction = ActionManager.getInstance().getAction(config.detectActionId)
-            button(
-                CommonBundle.message("configurable.executable.detect_button.label"), detectAction
-            ).align(AlignX.RIGHT + AlignY.CENTER)
         }.rowComment(CommonBundle.message("configurable.executable_path_option_marked_for_removal"))
             .layout(RowLayout.PARENT_GRID)
         row {
