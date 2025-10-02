@@ -1,5 +1,3 @@
-@file:Suppress("UnstableApiUsage")
-
 package works.szabope.plugins.common.services
 
 import com.jetbrains.python.packaging.PyRequirement
