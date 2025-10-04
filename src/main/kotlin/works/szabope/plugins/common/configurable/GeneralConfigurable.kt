@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.ActionUiKind
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.options.BoundSearchableConfigurable
@@ -18,6 +19,7 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.Condition
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.ComponentPredicate
@@ -26,6 +28,7 @@ import com.intellij.ui.layout.and
 import com.jetbrains.python.sdk.PySdkPopupFactory
 import com.jetbrains.python.sdk.noInterpreterMarker
 import com.jetbrains.python.sdk.pythonSdk
+import com.jetbrains.rd.util.Callable
 import works.szabope.plugins.common.CommonBundle
 import works.szabope.plugins.common.services.PluginPackageManagementService
 import works.szabope.plugins.common.services.Settings
@@ -43,6 +46,7 @@ data class ConfigurableConfiguration(
     val pickerDirectOptionTitle: String,
     val pickerDirectOptionFileFilter: GeneralConfigurable.FileFilter,
     val pickerDirectOptionEmptyWarning: String,
+    val pickerDirectOptionVersionCheckProgressTitle: String,
     val pickerSdkOptionTitle: String,
     val configFilePickerRowComment: String,
     val recommendedArguments: String,
@@ -56,11 +60,15 @@ abstract class GeneralConfigurable(
     protected abstract val settings: Settings
     protected abstract val packageManager: PluginPackageManagementService
     protected abstract val defaultArguments: String
-    abstract fun validateExecutable(builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton): ValidationInfo?
+
+    abstract fun validateExecutable(path: String?): String?
     abstract fun validateSdk(builder: ValidationInfoBuilder, button: JBRadioButton): ValidationInfo?
     abstract fun validateConfigFilePath(
         builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton
     ): ValidationInfo?
+
+    private var executablePathError: String? = null
+    private lateinit var pathToExecutableField: Cell<TextFieldWithBrowseButton>
 
     fun validateProjectDirectory(builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton): ValidationInfo? {
         val path = field.text.trimToNull() ?: return null
@@ -90,8 +98,15 @@ abstract class GeneralConfigurable(
         return pnl
     }
 
-
     override fun apply() {
+        // apply is executed under write lock that we must not block by running an external process
+        val futureExecutablePathValidity = ApplicationManager.getApplication().executeOnPooledThread(Callable {
+            validateExecutable(pathToExecutableField.component.text)
+        })
+        executablePathError =
+            runWithModalProgressBlocking(project, config.pickerDirectOptionVersionCheckProgressTitle) {
+                futureExecutablePathValidity.get()
+            }
         if ((createComponent() as DialogPanel).validateAll().isEmpty()) {
             super.apply()
         }
@@ -134,18 +149,21 @@ abstract class GeneralConfigurable(
                 FileChooserDescriptor(true, false, false, false, false, false).withFileFilter(
                     config.pickerDirectOptionFileFilter
                 )
-            val pathToExecutableField = textFieldWithBrowseButton(
+            pathToExecutableField = textFieldWithBrowseButton(
                 project = project, fileChooserDescriptor = executableChooserDescriptor
             )
             pathToExecutableField.align(Align.FILL).bindText(
                 getter = { settings.executablePath },
                 setter = { settings.executablePath = it.trim() },
             ).validationOnInput { field ->
+                executablePathError = null
                 if (field.text.isBlank()) {
                     return@validationOnInput warning(config.pickerDirectOptionEmptyWarning)
                 }
                 null
-            }.validationOnApply(::validateExecutable).resizableColumn().enabledIf(executableOption.selected)
+            }.validationOnApply {
+                return@validationOnApply executablePathError?.let { error(it) }
+            }.resizableColumn().enabledIf(executableOption.selected)
         }.rowComment(CommonBundle.message("configurable.executable_path_option_marked_for_removal"))
             .layout(RowLayout.PARENT_GRID)
         row {

@@ -31,6 +31,7 @@ object PythonMockSdk {
 
     fun create(name: String, sdkPath: String, level: LanguageLevel) = create(name, sdkPath, PyMockSdkType(level), level)
 
+    @Suppress("UnstableApiUsage", "UNCHECKED_CAST")
     fun create(
         sdkName: String, sdkPath: String, sdkType: SdkTypeId, level: LanguageLevel, vararg additionalRoots: VirtualFile
     ): Sdk {
