@@ -7,7 +7,7 @@ import com.jetbrains.python.packaging.PyPackage
 import com.jetbrains.python.packaging.common.PythonPackage
 import com.jetbrains.python.sdk.pythonSdk
 import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
-import works.szabope.plugins.common.services.PluginPackageManagementService
+import works.szabope.plugins.common.services.PluginPackageManagementException
 import java.util.*
 import kotlin.Result.Companion.success
 
@@ -20,10 +20,10 @@ abstract class AbstractPluginPackageManagementServiceStub(override val project: 
     override fun checkInstalledRequirement(): Result<Unit> {
         val installedPackage =
             getInstalledPackages().firstOrNull { it.name == getRequirement().name } ?: return Result.failure(
-                PluginPackageManagementService.PluginPackageManagementException.PackageNotInstalledException()
+                PluginPackageManagementException.PackageNotInstalledException()
             )
         if (!getRequirement().match(PyPackage(installedPackage.name, installedPackage.version ?: ""))) {
-            return Result.failure(PluginPackageManagementService.PluginPackageManagementException.PackageVersionObsoleteException())
+            return Result.failure(PluginPackageManagementException.PackageVersionObsoleteException())
         }
         return success(Unit)
     }

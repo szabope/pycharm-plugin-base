@@ -2,28 +2,27 @@ package works.szabope.plugins.common.action
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.progress.currentThreadCoroutineScope
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import works.szabope.plugins.common.services.PluginPackageManagementService
+import kotlinx.coroutines.guava.future
+import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
 
 abstract class AbstractInstallToolAction(private val messageInstalling: String, private val messageInstalled: String) :
     DumbAwareAction() {
 
-    abstract fun getPackageManager(project: Project): PluginPackageManagementService
+    abstract fun getPackageManager(project: Project): AbstractPluginPackageManagementService
     abstract fun handleFailure(failure: Throwable)
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        runWithModalProgressBlocking(project, messageInstalling) {
-            withContext(Dispatchers.EDT) {
-                getPackageManager(project).installRequirement().onFailure(::handleFailure).onSuccess {
-                    notifyPanel(project, messageInstalled)
-                }
-            }
+        val installResult = currentThreadCoroutineScope().future(Dispatchers.Default) {
+            getPackageManager(project).installRequirement()
+        }
+        ApplicationManager.getApplication().invokeLater {
+            installResult.get().onFailure { ::handleFailure }.onSuccess { notifyPanel(project, messageInstalled) }
         }
     }
 

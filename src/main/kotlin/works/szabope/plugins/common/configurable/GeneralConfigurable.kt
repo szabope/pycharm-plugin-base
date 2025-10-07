@@ -30,7 +30,7 @@ import com.jetbrains.python.sdk.noInterpreterMarker
 import com.jetbrains.python.sdk.pythonSdk
 import com.jetbrains.rd.util.Callable
 import works.szabope.plugins.common.CommonBundle
-import works.szabope.plugins.common.services.PluginPackageManagementService
+import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
 import works.szabope.plugins.common.services.Settings
 import works.szabope.plugins.common.trimToNull
 import java.io.File
@@ -58,7 +58,7 @@ abstract class GeneralConfigurable(
 ) : BoundSearchableConfigurable(config.displayName, config.helpTopic, config.id), Configurable.NoScroll {
 
     protected abstract val settings: Settings
-    protected abstract val packageManager: PluginPackageManagementService
+    protected abstract val packageManager: AbstractPluginPackageManagementService
     protected abstract val defaultArguments: String
 
     abstract fun validateExecutable(path: String?): String?
@@ -130,8 +130,8 @@ abstract class GeneralConfigurable(
             val event = AnActionEvent.createEvent(
                 action, dataContext, null, ActionPlaces.UNKNOWN, ActionUiKind.NONE, null
             )
+            buttonClicked.set(true)
             ActionUtil.performAction(action, event)
-            buttonClicked.set(false)
         }.enabledIf(object : ComponentPredicate() {
             override fun invoke() = !buttonClicked.get() && packageManager.canInstall()
             override fun addListener(listener: (Boolean) -> Unit) {

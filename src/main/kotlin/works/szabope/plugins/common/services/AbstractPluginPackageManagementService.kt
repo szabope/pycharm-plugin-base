@@ -1,10 +1,12 @@
 package works.szabope.plugins.common.services
 
 import com.intellij.openapi.project.Project
+import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.remote.RemoteSdkProperties
 import com.jetbrains.python.getOrThrow
-import com.jetbrains.python.packaging.PyExecutionException
+import com.jetbrains.python.isSuccess
 import com.jetbrains.python.packaging.PyPackage
+import com.jetbrains.python.packaging.PyRequirement
 import com.jetbrains.python.packaging.common.PythonPackage
 import com.jetbrains.python.packaging.common.PythonRepositoryPackageSpecification
 import com.jetbrains.python.packaging.management.PythonPackageManager
@@ -12,22 +14,25 @@ import com.jetbrains.python.packaging.management.getInstalledPackageSnapshot
 import com.jetbrains.python.packaging.management.toInstallRequest
 import com.jetbrains.python.sdk.PythonSdkUtil
 import com.jetbrains.python.sdk.pythonSdk
+import works.szabope.plugins.common.CommonBundle
 
-abstract class AbstractPluginPackageManagementService : PluginPackageManagementService {
+abstract class AbstractPluginPackageManagementService {
 
     protected abstract val project: Project
 
-    override fun canInstall(): Boolean {
+    abstract fun getRequirement(): PyRequirement
+
+    fun canInstall(): Boolean {
         val sdk = project.pythonSdk ?: return false
         return !PythonSdkUtil.isRemote(sdk) && checkInstalledRequirement().isFailure
     }
 
-    override fun isLocalEnvironment(): Boolean {
+    fun isLocalEnvironment(): Boolean {
         val sdk = project.pythonSdk ?: return false
         return PythonSdkUtil.isVirtualEnv(sdk) || PythonSdkUtil.isCondaVirtualEnv(sdk)
     }
 
-    override suspend fun reloadPackages(): Result<List<PythonPackage>>? {
+    open suspend fun reloadPackages(): Result<List<PythonPackage>>? {
         return try {
             getPackageManager()?.reloadPackages()?.getOrThrow()?.let { Result.success(it) }
         } catch (e: Exception) {
@@ -36,38 +41,49 @@ abstract class AbstractPluginPackageManagementService : PluginPackageManagementS
         }
     }
 
-    override fun isWSL() =
-        (project.pythonSdk?.sdkAdditionalData as? RemoteSdkProperties)?.sdkId?.startsWith("WSL") ?: false
+    fun isWSL() = (project.pythonSdk?.sdkAdditionalData as? RemoteSdkProperties)?.sdkId?.startsWith("WSL") ?: false
 
-    override fun checkInstalledRequirement(): Result<Unit> {
+    // open for testing purposes
+    open fun checkInstalledRequirement(): Result<Unit> {
         val requirement = getRequirement()
         val packageManager =
             getPackageManager() ?: return Result.failure(UnsupportedOperationException("No package manager found"))
         val installedPackage = packageManager.getInstalledPackageSnapshot(requirement.name) ?: return Result.failure(
-            PluginPackageManagementService.PluginPackageManagementException.PackageNotInstalledException()
+            PluginPackageManagementException.PackageNotInstalledException()
         )
         if (!getRequirement().match(PyPackage(installedPackage.name, installedPackage.version))) {
-            return Result.failure(PluginPackageManagementService.PluginPackageManagementException.PackageVersionObsoleteException())
+            return Result.failure(PluginPackageManagementException.PackageVersionObsoleteException())
         }
         return Result.success(Unit)
     }
 
-    override suspend fun installRequirement(): Result<Unit> {
+    // open for testing purposes
+    open suspend fun installRequirement(): Result<Unit> {
         val packageManager = getPackageManager()!!
         val requirement = getRequirement()
         val versionSpec = requirement.versionSpecs.firstOrNull()
         val specification = PythonRepositoryPackageSpecification(
             packageManager.repositoryManager.repositories.first(), requirement.name, versionSpec
         )
-        try {
-            packageManager.installPackage(specification.toInstallRequest(), options = emptyList()).getOrThrow()
-        } catch (ex: PyExecutionException) {
-            return Result.failure(ex)
+        val installResult = withBackgroundProgress(
+            project, CommonBundle.message("configurable.installation_in_progress", requirement.name), cancellable = true
+        ) {
+            packageManager.installPackage(specification.toInstallRequest(), options = emptyList())
         }
-        return Result.success(Unit)
+        return if (installResult.isSuccess) {
+            Result.success(Unit)
+        } else {
+            Result.failure(PluginPackageManagementException.InstallationFailedException(installResult.errorOrNull!!.message))
+        }
     }
 
     private fun getPackageManager(): PythonPackageManager? {
         return project.pythonSdk?.let { PythonPackageManager.forSdk(project, it) }
     }
+}
+
+sealed class PluginPackageManagementException : RuntimeException() {
+    class InstallationFailedException(override val message: String) : PluginPackageManagementException()
+    class PackageNotInstalledException : PluginPackageManagementException()
+    class PackageVersionObsoleteException : PluginPackageManagementException()
 }
