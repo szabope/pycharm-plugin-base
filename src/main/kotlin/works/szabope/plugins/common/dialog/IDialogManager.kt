@@ -19,6 +19,8 @@ interface IDialogManager {
         resultCode: Int
     ): PluginDialog
 
+    fun createFailedToExecuteErrorDialog(message: String): PluginDialog
+
     fun createToolOutputParseErrorDialog(
         configuration: ImmutableSettingsData, targets: String, json: String, error: String
     ): PluginDialog
@@ -41,6 +43,11 @@ interface IDialogManager {
                 val dialog = createToolExecutionErrorDialog(configuration, result, resultCode)
                 showDialog(dialog)
             }
+
+        fun showFailedToExecuteErrorDialog(message: String) = with(dialogManager) {
+            val dialog = createFailedToExecuteErrorDialog(message)
+            showDialog(dialog)
+        }
 
         fun showToolOutputParseErrorDialog(
             configuration: ImmutableSettingsData, targets: String, json: String, error: String
