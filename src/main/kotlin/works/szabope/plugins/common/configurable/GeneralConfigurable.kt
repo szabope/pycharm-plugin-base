@@ -118,6 +118,26 @@ abstract class GeneralConfigurable(
         }
     }
 
+    private fun canInstall(): Boolean {
+        val futureCanInstall = ApplicationManager.getApplication().executeOnPooledThread(Callable {
+            packageManager.canInstall()
+        })
+        return runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.can_install")) {
+            futureCanInstall.get()
+        }
+    }
+
+    private fun isLocalEnvironment(): Boolean {
+        val futureIsLocalEnvironment = ApplicationManager.getApplication().executeOnPooledThread(Callable {
+            packageManager.isLocalEnvironment()
+        })
+        return runWithModalProgressBlocking(
+            project, CommonBundle.message("configurable.progress.is_local_environment")
+        ) {
+            futureIsLocalEnvironment.get()
+        }
+    }
+
     private fun Row.installButton(enabled: ComponentPredicate) {
         val buttonClicked = AtomicBooleanProperty(false)
         val action = ActionManager.getInstance().getAction(config.installActionId)
@@ -133,7 +153,7 @@ abstract class GeneralConfigurable(
             buttonClicked.set(true)
             ActionUtil.performAction(action, event)
         }.enabledIf(object : ComponentPredicate() {
-            override fun invoke() = !buttonClicked.get() && packageManager.canInstall()
+            override fun invoke() = !buttonClicked.get() && canInstall()
             override fun addListener(listener: (Boolean) -> Unit) {
                 buttonClicked.afterChange(listener)
             }
@@ -173,7 +193,7 @@ abstract class GeneralConfigurable(
             sdkOption.component
             installButton(sdkOption.selected)
         }.rowComment(
-            comment = if (!packageManager.isLocalEnvironment()) {
+            comment = if (!isLocalEnvironment()) {
                 CommonBundle.message("configurable.system_wide_installation_warning")
             } else {
                 ""
