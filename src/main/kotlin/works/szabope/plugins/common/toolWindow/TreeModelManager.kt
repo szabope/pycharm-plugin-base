@@ -67,7 +67,7 @@ class TreeModelManager(severities: Set<String>) {
 
     private fun resetRoot(targetsMaybe: Collection<VirtualFile>? = null) {
         val targets = targetsMaybe ?: model.root.targets
-        model.setRoot(RootNode(CommonBundle.message("toolwindow.root.message", 0, 0), targets))
+        model.setRoot(RootNode(CommonBundle.message("toolwindow.loading.message"), targets))
     }
 
     private fun addToTree(issue: TreeModelDataItem) {
