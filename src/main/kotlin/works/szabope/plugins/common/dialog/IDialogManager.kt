@@ -1,7 +1,7 @@
 package works.szabope.plugins.common.dialog
 
-import com.jetbrains.python.packaging.PyExecutionException
 import works.szabope.plugins.common.services.ImmutableSettingsData
+import works.szabope.plugins.common.services.PluginPackageManagementException
 
 interface PluginDialog {
     fun show()
@@ -11,13 +11,15 @@ interface PluginDialog {
 interface IDialogManager {
     fun showDialog(dialog: PluginDialog)
 
-    fun createPyPackageInstallationErrorDialog(exception: PyExecutionException): PluginDialog
+    fun createPyPackageInstallationErrorDialog(exception: PluginPackageManagementException.InstallationFailedException): PluginDialog
 
     fun createToolExecutionErrorDialog(
         configuration: ImmutableSettingsData,
         result: String,
         resultCode: Int
     ): PluginDialog
+
+    fun createFailedToExecuteErrorDialog(message: String): PluginDialog
 
     fun createToolOutputParseErrorDialog(
         configuration: ImmutableSettingsData, targets: String, json: String, error: String
@@ -26,10 +28,11 @@ interface IDialogManager {
     fun createGeneralErrorDialog(failure: Throwable): PluginDialog
 
     interface IShowDialog {
-        fun showPyPackageInstallationErrorDialog(exception: PyExecutionException) = with(dialogManager) {
-            val dialog = createPyPackageInstallationErrorDialog(exception)
-            showDialog(dialog)
-        }
+        fun showPyPackageInstallationErrorDialog(exception: PluginPackageManagementException.InstallationFailedException) =
+            with(dialogManager) {
+                val dialog = createPyPackageInstallationErrorDialog(exception)
+                showDialog(dialog)
+            }
 
         fun showGeneralErrorDialog(failure: Throwable) = with(dialogManager) {
             val dialog = createGeneralErrorDialog(failure)
@@ -41,6 +44,11 @@ interface IDialogManager {
                 val dialog = createToolExecutionErrorDialog(configuration, result, resultCode)
                 showDialog(dialog)
             }
+
+        fun showFailedToExecuteErrorDialog(message: String) = with(dialogManager) {
+            val dialog = createFailedToExecuteErrorDialog(message)
+            showDialog(dialog)
+        }
 
         fun showToolOutputParseErrorDialog(
             configuration: ImmutableSettingsData, targets: String, json: String, error: String

@@ -2,29 +2,27 @@ package works.szabope.plugins.common.action
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.progress.currentThreadCoroutineScope
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import works.szabope.plugins.common.services.PluginPackageManagementService
+import kotlinx.coroutines.guava.future
+import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
 
-class InstallationToolActionConfig(val messageInstalling: String, val messageInstalled: String)
+abstract class AbstractInstallToolAction(private val messageInstalling: String, private val messageInstalled: String) :
+    DumbAwareAction() {
 
-abstract class AbstractInstallToolAction(private val config: InstallationToolActionConfig) : DumbAwareAction() {
-
-    abstract fun getPackageManager(project: Project): PluginPackageManagementService
+    abstract fun getPackageManager(project: Project): AbstractPluginPackageManagementService
     abstract fun handleFailure(failure: Throwable)
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        runWithModalProgressBlocking(project, config.messageInstalling) {
-            withContext(Dispatchers.EDT) {
-                getPackageManager(project).installRequirement().onFailure(::handleFailure).onSuccess {
-                    notifyPanel(project, config.messageInstalled)
-                }
-            }
+        val installResult = currentThreadCoroutineScope().future(Dispatchers.Default) {
+            getPackageManager(project).installRequirement()
+        }
+        ApplicationManager.getApplication().invokeLater {
+            installResult.get().onFailure { ::handleFailure }.onSuccess { notifyPanel(project, messageInstalled) }
         }
     }
 

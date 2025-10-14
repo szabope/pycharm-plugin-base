@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.ActionUiKind
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.options.BoundSearchableConfigurable
@@ -18,6 +19,7 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.Condition
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.ComponentPredicate
@@ -26,10 +28,12 @@ import com.intellij.ui.layout.and
 import com.jetbrains.python.sdk.PySdkPopupFactory
 import com.jetbrains.python.sdk.noInterpreterMarker
 import com.jetbrains.python.sdk.pythonSdk
+import com.jetbrains.rd.util.Callable
 import works.szabope.plugins.common.CommonBundle
-import works.szabope.plugins.common.services.PluginPackageManagementService
+import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
 import works.szabope.plugins.common.services.Settings
 import works.szabope.plugins.common.trimToNull
+import java.io.File
 import javax.swing.JButton
 
 data class ConfigurableConfiguration(
@@ -42,6 +46,7 @@ data class ConfigurableConfiguration(
     val pickerDirectOptionTitle: String,
     val pickerDirectOptionFileFilter: GeneralConfigurable.FileFilter,
     val pickerDirectOptionEmptyWarning: String,
+    val pickerDirectOptionVersionCheckProgressTitle: String,
     val pickerSdkOptionTitle: String,
     val configFilePickerRowComment: String,
     val recommendedArguments: String,
@@ -49,23 +54,34 @@ data class ConfigurableConfiguration(
 
 @Suppress("UnstableApiUsage")
 abstract class GeneralConfigurable(
-    private val project: Project, @VisibleForTesting val config: ConfigurableConfiguration
+    private val project: Project, @param:VisibleForTesting val config: ConfigurableConfiguration
 ) : BoundSearchableConfigurable(config.displayName, config.helpTopic, config.id), Configurable.NoScroll {
 
     protected abstract val settings: Settings
-    protected abstract val packageManager: PluginPackageManagementService
+    protected abstract val packageManager: AbstractPluginPackageManagementService
     protected abstract val defaultArguments: String
-    abstract fun validateExecutable(builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton): ValidationInfo?
+
+    abstract fun validateExecutable(path: String?): String?
     abstract fun validateSdk(builder: ValidationInfoBuilder, button: JBRadioButton): ValidationInfo?
     abstract fun validateConfigFilePath(
-        builder: ValidationInfoBuilder,
-        field: TextFieldWithBrowseButton
+        builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton
     ): ValidationInfo?
 
-    abstract fun validateProjectDirectory(
-        builder: ValidationInfoBuilder,
-        field: TextFieldWithBrowseButton
-    ): ValidationInfo?
+    private var executablePathError: String? = null
+    private lateinit var pathToExecutableField: Cell<TextFieldWithBrowseButton>
+
+    fun validateProjectDirectory(builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton): ValidationInfo? {
+        val path = field.text.trimToNull() ?: return null
+        require(path.isNotBlank())
+        val file = File(path)
+        if (!file.exists()) {
+            return builder.error(CommonBundle.message("configurable.path_to_project_directory.not_exist"))
+        }
+        if (!file.isDirectory) {
+            return builder.error(CommonBundle.message("configurable.path_to_project_directory.is_not_directory"))
+        }
+        return null
+    }
 
     override fun createPanel(): DialogPanel {
         val pnl = panel {
@@ -82,8 +98,15 @@ abstract class GeneralConfigurable(
         return pnl
     }
 
-
     override fun apply() {
+        // apply is executed under write lock that we must not block by running an external process
+        val futureExecutablePathValidity = ApplicationManager.getApplication().executeOnPooledThread(Callable {
+            validateExecutable(pathToExecutableField.component.text)
+        })
+        executablePathError =
+            runWithModalProgressBlocking(project, config.pickerDirectOptionVersionCheckProgressTitle) {
+                futureExecutablePathValidity.get()
+            }
         if ((createComponent() as DialogPanel).validateAll().isEmpty()) {
             super.apply()
         }
@@ -92,6 +115,26 @@ abstract class GeneralConfigurable(
     class FileFilter(private val fileNames: List<String>) : Condition<VirtualFile> {
         override fun value(t: VirtualFile?): Boolean {
             return fileNames.contains(t?.name ?: return false)
+        }
+    }
+
+    private fun canInstall(): Boolean {
+        val futureCanInstall = ApplicationManager.getApplication().executeOnPooledThread(Callable {
+            packageManager.canInstall()
+        })
+        return runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.can_install")) {
+            futureCanInstall.get()
+        }
+    }
+
+    private fun isLocalEnvironment(): Boolean {
+        val futureIsLocalEnvironment = ApplicationManager.getApplication().executeOnPooledThread(Callable {
+            packageManager.isLocalEnvironment()
+        })
+        return runWithModalProgressBlocking(
+            project, CommonBundle.message("configurable.progress.is_local_environment")
+        ) {
+            futureIsLocalEnvironment.get()
         }
     }
 
@@ -107,11 +150,10 @@ abstract class GeneralConfigurable(
             val event = AnActionEvent.createEvent(
                 action, dataContext, null, ActionPlaces.UNKNOWN, ActionUiKind.NONE, null
             )
-            ActionUtil.invokeAction(action, event) {
-                buttonClicked.set(false)
-            }
+            buttonClicked.set(true)
+            ActionUtil.performAction(action, event)
         }.enabledIf(object : ComponentPredicate() {
-            override fun invoke() = !buttonClicked.get() && packageManager.canInstall()
+            override fun invoke() = !buttonClicked.get() && canInstall()
             override fun addListener(listener: (Boolean) -> Unit) {
                 buttonClicked.afterChange(listener)
             }
@@ -127,20 +169,23 @@ abstract class GeneralConfigurable(
                 FileChooserDescriptor(true, false, false, false, false, false).withFileFilter(
                     config.pickerDirectOptionFileFilter
                 )
-            val pathToExecutableField = textFieldWithBrowseButton(
+            pathToExecutableField = textFieldWithBrowseButton(
                 project = project, fileChooserDescriptor = executableChooserDescriptor
             )
-            pathToExecutableField.comment(CommonBundle.message("settings.executable_path_option_marked_for_removal"))
-                .align(Align.FILL).bindText(
-                    getter = { settings.executablePath ?: "" },
-                    setter = { settings.executablePath = it.trimToNull() },
-                ).validationOnInput { field ->
-                    if (field.text.isBlank()) {
-                        return@validationOnInput warning(config.pickerDirectOptionEmptyWarning)
-                    }
-                    null
-                }.validationOnApply(::validateExecutable).resizableColumn().enabledIf(executableOption.selected)
-        }.layout(RowLayout.PARENT_GRID)
+            pathToExecutableField.align(Align.FILL).bindText(
+                getter = { settings.executablePath },
+                setter = { settings.executablePath = it.trim() },
+            ).validationOnInput { field ->
+                executablePathError = null
+                if (field.text.isBlank()) {
+                    return@validationOnInput warning(config.pickerDirectOptionEmptyWarning)
+                }
+                null
+            }.validationOnApply {
+                return@validationOnApply executablePathError?.let { error(it) }
+            }.resizableColumn().enabledIf(executableOption.selected)
+        }.rowComment(CommonBundle.message("configurable.executable_path_option_marked_for_removal"))
+            .layout(RowLayout.PARENT_GRID)
         row {
             val sdkOption = radioButton(config.pickerSdkOptionTitle, USE_PROJECT_SDK).enabled(
                 project.pythonSdk != null
@@ -148,8 +193,8 @@ abstract class GeneralConfigurable(
             sdkOption.component
             installButton(sdkOption.selected)
         }.rowComment(
-            comment = if (!packageManager.isLocalEnvironment()) {
-                CommonBundle.message("settings.system_wide_installation_warning")
+            comment = if (!isLocalEnvironment()) {
+                CommonBundle.message("configurable.system_wide_installation_warning")
             } else {
                 ""
             }, maxLineLength = MAX_LINE_LENGTH_WORD_WRAP
@@ -157,28 +202,28 @@ abstract class GeneralConfigurable(
     }.bind(getter = { settings.useProjectSdk }, setter = { settings.useProjectSdk = it })
 
     private fun Panel.configFilePicker() = row {
-        label(CommonBundle.message("settings.config_file.label"))
+        label(CommonBundle.message("configurable.config_file.label"))
         textFieldWithBrowseButton(project = project).align(Align.FILL).bindText(
-            getter = { settings.configFilePath.orEmpty() },
-            setter = { settings.configFilePath = it.trimToNull() },
+            getter = { settings.configFilePath },
+            setter = { settings.configFilePath = it.trim() },
         ).validationOnApply(::validateConfigFilePath)
     }.rowComment(
         config.configFilePickerRowComment, maxLineLength = MAX_LINE_LENGTH_WORD_WRAP
     ).layout(RowLayout.PARENT_GRID)
 
     private fun Panel.argumentsField() = row {
-        label(CommonBundle.message("settings.arguments.label"))
+        label(CommonBundle.message("configurable.arguments.label"))
         textField().align(Align.FILL).bindText(
-            getter = { settings.arguments ?: defaultArguments },
+            getter = { settings.arguments.ifBlank { defaultArguments } },
             setter = { settings.arguments = it.trim() },
         )
     }.rowComment(
-        CommonBundle.message("settings.arguments.hint_recommended", config.recommendedArguments),
+        CommonBundle.message("configurable.arguments.hint_recommended", config.recommendedArguments),
         maxLineLength = MAX_LINE_LENGTH_WORD_WRAP
     ).layout(RowLayout.PARENT_GRID)
 
     private fun Panel.projectDirectoryPicker() = row {
-        label(CommonBundle.message("settings.project_directory.label"))
+        label(CommonBundle.message("configurable.project_directory.label"))
         val directoryChooserDescriptor = FileChooserDescriptor(false, true, false, false, false, false)
         textFieldWithBrowseButton(
             project = project, fileChooserDescriptor = directoryChooserDescriptor
@@ -187,14 +232,14 @@ abstract class GeneralConfigurable(
             setter = { settings.projectDirectory = it },
         ).validationOnInput { field ->
             if (field.text.isBlank()) {
-                return@validationOnInput warning(CommonBundle.message("settings.project_directory.empty_warning"))
+                return@validationOnInput warning(CommonBundle.message("configurable.project_directory.empty_warning"))
             }
             null
         }.validationOnApply(::validateProjectDirectory)
     }.layout(RowLayout.PARENT_GRID)
 
     private fun Panel.excludeNonProjectFilesCheckbox() = row {
-        checkBox(CommonBundle.message("settings.exclude_non_project_files.label")).bindSelected(
+        checkBox(CommonBundle.message("configurable.exclude_non_project_files.label")).bindSelected(
             getter = { settings.excludeNonProjectFiles },
             setter = { settings.excludeNonProjectFiles = it })
     }.layout(RowLayout.PARENT_GRID)

@@ -51,8 +51,17 @@ dependencies {
 }
 
 tasks {
+    prepareJarSearchableOptions {
+        enabled = false
+    }
+    buildSearchableOptions {
+        enabled = false
+    }
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
+    }
+    jar {
+        exclude("META-INF/plugin.xml")
     }
 }
 
