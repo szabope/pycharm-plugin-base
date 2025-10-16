@@ -1,5 +1,6 @@
 package works.szabope.plugins.common.action
 
+import com.intellij.notification.Notification
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
@@ -22,7 +23,10 @@ abstract class AbstractInstallToolAction(private val messageInstalling: String, 
             getPackageManager(project).installRequirement()
         }
         ApplicationManager.getApplication().invokeLater {
-            installResult.get().onFailure { ::handleFailure }.onSuccess { notifyPanel(project, messageInstalled) }
+            installResult.get().onFailure(::handleFailure).onSuccess {
+                notifyPanel(project, messageInstalled)
+                e.getData(Notification.KEY)?.expire()
+            }
         }
     }
 
