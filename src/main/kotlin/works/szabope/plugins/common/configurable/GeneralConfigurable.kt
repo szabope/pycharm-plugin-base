@@ -30,6 +30,7 @@ import com.jetbrains.python.sdk.noInterpreterMarker
 import com.jetbrains.python.sdk.pythonSdk
 import com.jetbrains.rd.util.Callable
 import works.szabope.plugins.common.CommonBundle
+import works.szabope.plugins.common.processErrorAndGet
 import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
 import works.szabope.plugins.common.services.Settings
 import works.szabope.plugins.common.trimToNull
@@ -107,7 +108,10 @@ abstract class GeneralConfigurable(
             runWithModalProgressBlocking(project, config.pickerDirectOptionVersionCheckProgressTitle) {
                 futureExecutablePathValidity.get()
             }
-        if ((createComponent() as DialogPanel).validateAll().isEmpty()) {
+        val validationResults = runCatching {
+            (createComponent() as DialogPanel).validateAll()
+        }.processErrorAndGet { error(it) }
+        if (validationResults.isEmpty()) {
             super.apply()
         }
     }
@@ -171,8 +175,7 @@ abstract class GeneralConfigurable(
                 )
             pathToExecutableField = textFieldWithBrowseButton(
                 project = project, fileChooserDescriptor = executableChooserDescriptor
-            )
-            pathToExecutableField.align(Align.FILL).bindText(
+            ).align(Align.FILL).bindText(
                 getter = { settings.executablePath },
                 setter = { settings.executablePath = it.trim() },
             ).validationOnInput { field ->
@@ -181,8 +184,8 @@ abstract class GeneralConfigurable(
                     return@validationOnInput warning(config.pickerDirectOptionEmptyWarning)
                 }
                 null
-            }.validationOnApply {
-                return@validationOnApply executablePathError?.let { error(it) }
+            }.validationOnApply { field ->
+                return@validationOnApply executablePathError.takeIf { field.isEnabled }?.let(::error)
             }.resizableColumn().enabledIf(executableOption.selected)
         }.rowComment(CommonBundle.message("configurable.executable_path_option_marked_for_removal"))
             .layout(RowLayout.PARENT_GRID)
