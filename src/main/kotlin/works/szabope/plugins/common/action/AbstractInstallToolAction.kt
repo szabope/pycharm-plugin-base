@@ -11,8 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.guava.future
 import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
 
-abstract class AbstractInstallToolAction(private val messageInstalling: String, private val messageInstalled: String) :
-    DumbAwareAction() {
+abstract class AbstractInstallToolAction(private val messageInstalled: String) : DumbAwareAction() {
 
     abstract fun getPackageManager(project: Project): AbstractPluginPackageManagementService
     abstract fun handleFailure(failure: Throwable)
