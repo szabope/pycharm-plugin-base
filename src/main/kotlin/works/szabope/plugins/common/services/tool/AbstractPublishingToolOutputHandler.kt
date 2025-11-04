@@ -22,4 +22,8 @@ abstract class AbstractPublishingToolOutputHandler<I : ToolResultItem>(
             treeService.add(item)
         }
     }
+
+    override suspend fun handleCompletion(throwable: Throwable?) {
+        treeService.lock()
+    }
 }

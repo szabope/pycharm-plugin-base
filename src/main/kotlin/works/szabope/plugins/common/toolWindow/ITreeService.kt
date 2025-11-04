@@ -11,4 +11,5 @@ interface ITreeService {
     fun setSeverityLevelDisplayed(level: String, selected: Boolean)
     fun add(item: TreeModelDataItem)
     fun install(tree: Tree)
+    fun lock()
 }

@@ -6,11 +6,13 @@ import com.intellij.ui.treeStructure.Tree
 abstract class AbstractTreeService(severities: Set<String>) : ITreeService {
 
     private val modelManager = TreeModelManager(severities)
+    private var writable = true
 
     override fun getRootScanPaths() = modelManager.getRootScanPaths()
 
     override fun reinitialize(targets: Collection<VirtualFile>) {
         modelManager.reinitialize(targets)
+        writable = true
     }
 
     override fun addChangeListener(onModelChange: () -> Unit) {
@@ -24,10 +26,18 @@ abstract class AbstractTreeService(severities: Set<String>) : ITreeService {
     }
 
     override fun add(item: TreeModelDataItem) {
+        if (!writable) {
+            throw IllegalStateException("Tree is not writeable")
+        }
         modelManager.add(item)
     }
 
     override fun install(tree: Tree) {
         modelManager.install(tree)
+    }
+
+    override fun lock() {
+        writable = false
+        modelManager.updateTree()
     }
 }
