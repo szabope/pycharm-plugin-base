@@ -8,7 +8,7 @@ import com.intellij.openapi.progress.currentThreadCoroutineScope
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.guava.future
+import kotlinx.coroutines.future.future
 import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
 
 abstract class AbstractInstallToolAction(private val messageInstalled: String) : DumbAwareAction() {
