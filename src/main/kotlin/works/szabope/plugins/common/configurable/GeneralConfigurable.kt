@@ -1,6 +1,5 @@
 package works.szabope.plugins.common.configurable
 
-import androidx.annotation.VisibleForTesting
 import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
@@ -29,6 +28,7 @@ import com.jetbrains.python.sdk.PySdkPopupFactory
 import com.jetbrains.python.sdk.noInterpreterMarker
 import com.jetbrains.python.sdk.pythonSdk
 import com.jetbrains.rd.util.Callable
+import org.jetbrains.annotations.VisibleForTesting
 import works.szabope.plugins.common.CommonBundle
 import works.szabope.plugins.common.processErrorAndGet
 import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
@@ -55,7 +55,7 @@ data class ConfigurableConfiguration(
 
 @Suppress("UnstableApiUsage")
 abstract class GeneralConfigurable(
-    private val project: Project, @param:VisibleForTesting val config: ConfigurableConfiguration
+    private val project: Project, @VisibleForTesting val config: ConfigurableConfiguration
 ) : BoundSearchableConfigurable(config.displayName, config.helpTopic, config.id), Configurable.NoScroll {
 
     protected abstract val settings: Settings
