@@ -17,7 +17,7 @@ class TreeModelManager(severities: Set<String>) {
         issues.add(issue)
         if (isDisplayed(issue)) {
             addToTree(issue)
-            triggerChangeListeners()
+            updateTree()
             logger.debug("Issue added to tree: $issue")
         }
     }
@@ -61,6 +61,15 @@ class TreeModelManager(severities: Set<String>) {
         return hadEffect
     }
 
+    fun updateTree() {
+        model.updateRootText(
+            CommonBundle.message(
+                "toolwindow.root.message", getIssueCount(), model.getChildCount(model.root)
+            )
+        )
+        triggerChangeListeners()
+    }
+
     private fun triggerChangeListeners() {
         changeListeners.forEach { it() }
     }
@@ -75,11 +84,6 @@ class TreeModelManager(severities: Set<String>) {
         val issueNode = IssueNode(issue)
         model.append(issueNode, fileNode)
         model.root.registerIssueAdded()
-        model.updateRootText(
-            CommonBundle.message(
-                "toolwindow.root.message", getIssueCount(), model.getChildCount(model.root)
-            )
-        )
     }
 
     private fun getIssueCount(): Int = model.root.getIssueCount()
