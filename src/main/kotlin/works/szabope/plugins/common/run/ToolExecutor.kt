@@ -42,7 +42,7 @@ abstract class ToolExecutor(private val project: Project, private val moduleToRu
             }
 
             override fun processTerminated(event: ProcessEvent) {
-                if (event.exitCode > 0) {
+                if (isError(event)) {
                     close(ToolExecutionTerminatedException(event.exitCode))
                 } else {
                     close() // signal flow completion
@@ -63,4 +63,8 @@ abstract class ToolExecutor(private val project: Project, private val moduleToRu
             handler.waitFor()
         }
     }.buffer(Channel.UNLIMITED)
+
+    protected open fun isError(event: ProcessEvent): Boolean {
+        return event.exitCode > 0
+    }
 }

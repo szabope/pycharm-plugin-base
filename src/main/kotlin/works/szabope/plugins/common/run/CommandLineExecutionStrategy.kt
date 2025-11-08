@@ -17,6 +17,6 @@ class CommandLineExecutionStrategy(
         commandLine.withWorkingDirectory(configuration.projectDirectory?.let { Path.of(it) })
         commandLine.withExePath(configuration.executablePath)
         commandLine.withParameters(parameters)
-        processHandler = OSProcessHandler(commandLine)
+        processHandler = ToolProcessHandler(commandLine)
     }
 }

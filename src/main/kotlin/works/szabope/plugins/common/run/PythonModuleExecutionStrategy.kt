@@ -42,7 +42,7 @@ class PythonModuleExecutionStrategy(
             isUsePty = false,
         )
         val process = targetEnvironment.createProcess(targetCommandLine)
-        processHandler = OSProcessHandler(
+        processHandler = ToolProcessHandler(
             process, targetCommandLine.getCommandPresentation(targetEnvironment), Charset.defaultCharset()
         )
     }
