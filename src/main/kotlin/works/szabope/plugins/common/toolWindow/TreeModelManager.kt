@@ -25,7 +25,7 @@ class TreeModelManager(severities: Set<String>) {
     fun reload() {
         resetRoot()
         issues.filter { isDisplayed(it) }.forEach { addToTree(it) }
-        triggerChangeListeners()
+        updateTree()
     }
 
     fun reinitialize(targets: Collection<VirtualFile>) {
@@ -76,7 +76,7 @@ class TreeModelManager(severities: Set<String>) {
 
     private fun resetRoot(targetsMaybe: Collection<VirtualFile>? = null) {
         val targets = targetsMaybe ?: model.root.targets
-        model.setRoot(RootNode(CommonBundle.message("toolwindow.loading.message"), targets))
+        model.setRoot(RootNode("...", targets))
     }
 
     private fun addToTree(issue: TreeModelDataItem) {
