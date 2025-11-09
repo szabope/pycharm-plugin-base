@@ -10,12 +10,14 @@ import com.jetbrains.python.run.PythonModuleExecution
 import com.jetbrains.python.run.buildTargetedCommandLine
 import com.jetbrains.python.sdk.pythonSdk
 import com.jetbrains.python.sdk.targetEnvConfiguration
-import kotlinx.html.emptyMap
 import works.szabope.plugins.common.CommonBundle
 import java.nio.charset.Charset
 
 class PythonModuleExecutionStrategy(
-    project: Project, moduleToRun: String, parameters: List<String> = emptyList()
+    project: Project,
+    moduleToRun: String,
+    parameters: List<String> = emptyList(),
+    envs: Map<String, String> = emptyMap()
 ) : ToolExecutionStrategy {
     override val processHandler: OSProcessHandler
 
@@ -26,7 +28,6 @@ class PythonModuleExecutionStrategy(
         execution.moduleName = moduleToRun
         execution.parameters += parameters.map { constant(it) }
 
-        val envs = emptyMap //TODO
         val patchedEnvs = addDefaultEnvironments(sdk, envs.toMutableMap())
         patchedEnvs.forEach {
             execution.addEnvironmentVariable(it.key, it.value)
