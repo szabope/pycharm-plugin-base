@@ -4,6 +4,7 @@ import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.target.TargetProgressIndicator
 import com.intellij.execution.target.local.LocalTargetEnvironmentRequest
 import com.intellij.execution.target.value.constant
+import com.intellij.execution.target.value.targetPath
 import com.intellij.openapi.project.Project
 import com.jetbrains.python.console.addDefaultEnvironments
 import com.jetbrains.python.run.PythonModuleExecution
@@ -12,12 +13,15 @@ import com.jetbrains.python.sdk.pythonSdk
 import com.jetbrains.python.sdk.targetEnvConfiguration
 import works.szabope.plugins.common.CommonBundle
 import java.nio.charset.Charset
+import java.nio.file.Path
 
+@Suppress("UnstableApiUsage")
 class PythonModuleExecutionStrategy(
     project: Project,
     moduleToRun: String,
     parameters: List<String> = emptyList(),
-    envs: Map<String, String> = emptyMap()
+    envs: Map<String, String> = emptyMap(),
+    workingDir: String?
 ) : ToolExecutionStrategy {
     override val processHandler: OSProcessHandler
 
@@ -27,6 +31,7 @@ class PythonModuleExecutionStrategy(
         val execution = PythonModuleExecution()
         execution.moduleName = moduleToRun
         execution.parameters += parameters.map { constant(it) }
+        execution.workingDir = workingDir?.let { targetPath(Path.of(it)) }
 
         val patchedEnvs = addDefaultEnvironments(sdk, envs.toMutableMap())
         patchedEnvs.forEach {

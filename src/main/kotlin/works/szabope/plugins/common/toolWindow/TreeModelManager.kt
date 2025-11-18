@@ -1,9 +1,11 @@
 package works.szabope.plugins.common.toolWindow
 
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.treeStructure.Tree
 import works.szabope.plugins.common.CommonBundle
+import kotlin.time.measureTime
 
 class TreeModelManager(severities: Set<String>) {
 
@@ -62,12 +64,14 @@ class TreeModelManager(severities: Set<String>) {
     }
 
     fun updateTree() {
-        model.updateRootText(
-            CommonBundle.message(
-                "toolwindow.root.message", getIssueCount(), model.getChildCount(model.root)
+        measureTime {
+            model.updateRootText(
+                CommonBundle.message(
+                    "toolwindow.root.message", getIssueCount(), model.getChildCount(model.root)
+                )
             )
-        )
-        triggerChangeListeners()
+            triggerChangeListeners()
+        }.let { thisLogger().debug("TreeModelManager#updateTree took $it") }
     }
 
     private fun triggerChangeListeners() {

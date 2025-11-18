@@ -3,6 +3,7 @@ package works.szabope.plugins.common.run
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessOutputTypes
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -21,13 +22,14 @@ abstract class ToolExecutor(private val project: Project, private val moduleToRu
         configuration: ImmutableSettingsData, parameters: List<String> = emptyList()
     ): Flow<ProcessLine> = channelFlow {
         val handler = if (configuration.useProjectSdk) {
-            PythonModuleExecutionStrategy(project, moduleToRun, parameters)
+            PythonModuleExecutionStrategy(project, moduleToRun, parameters, workingDir = configuration.projectDirectory)
         } else {
-            CommandLineExecutionStrategy(configuration, parameters)
+            CommandLineExecutionStrategy(configuration.executablePath, configuration.projectDirectory, parameters)
         }.processHandler
 
         val listener = object : ProcessListener {
             override fun onTextAvailable(event: ProcessEvent, outputType: com.intellij.openapi.util.Key<*>) {
+                thisLogger().debug("ToolExecutor.ProcessListener#onTextAvailable received event of type $outputType")
                 when (outputType) {
                     ProcessOutputTypes.STDOUT -> {
                         trySend(ProcessLine(event.text, false))
