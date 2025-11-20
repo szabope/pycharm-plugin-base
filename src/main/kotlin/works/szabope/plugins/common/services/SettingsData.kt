@@ -2,6 +2,6 @@ package works.szabope.plugins.common.services
 
 interface SettingsData : BasicSettingsData {
     val useProjectSdk: Boolean
-    val projectDirectory: String?
+    val workingDirectory: String?
     val excludeNonProjectFiles: Boolean
 }
