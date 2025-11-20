@@ -22,9 +22,9 @@ abstract class ToolExecutor(private val project: Project, private val moduleToRu
         configuration: ImmutableSettingsData, parameters: List<String> = emptyList()
     ): Flow<ProcessLine> = channelFlow {
         val handler = if (configuration.useProjectSdk) {
-            PythonModuleExecutionStrategy(project, moduleToRun, parameters, workingDir = configuration.projectDirectory)
+            PythonModuleExecutionStrategy(project, moduleToRun, parameters, workingDir = configuration.workingDirectory)
         } else {
-            CommandLineExecutionStrategy(configuration.executablePath, configuration.projectDirectory, parameters)
+            CommandLineExecutionStrategy(configuration.executablePath, configuration.workingDirectory, parameters)
         }.processHandler
 
         val listener = object : ProcessListener {

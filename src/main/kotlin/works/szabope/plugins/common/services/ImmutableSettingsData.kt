@@ -5,7 +5,7 @@ interface ImmutableSettingsData : SettingsData {
     override val useProjectSdk: Boolean
     override val configFilePath: String
     override val arguments: String
-    override val projectDirectory: String?
+    override val workingDirectory: String
     override val excludeNonProjectFiles: Boolean
     override val scanBeforeCheckIn: Boolean
 }

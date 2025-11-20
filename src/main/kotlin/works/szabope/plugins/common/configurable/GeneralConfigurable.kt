@@ -50,7 +50,7 @@ data class ConfigurableConfiguration(
     val pickerDirectOptionVersionCheckProgressTitle: String,
     val pickerSdkOptionTitle: String,
     val configFilePickerRowComment: String,
-    val recommendedArguments: String,
+    val argumentsDescription: String = "",
 )
 
 @Suppress("UnstableApiUsage")
@@ -71,7 +71,7 @@ abstract class GeneralConfigurable(
     private var executablePathError: String? = null
     private lateinit var pathToExecutableField: Cell<TextFieldWithBrowseButton>
 
-    fun validateProjectDirectory(builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton): ValidationInfo? {
+    fun validateWorkingDirectory(builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton): ValidationInfo? {
         val path = field.text.trimToNull() ?: return null
         require(path.isNotBlank())
         val file = File(path)
@@ -90,7 +90,7 @@ abstract class GeneralConfigurable(
                 toolPicker()
                 configFilePicker()
                 argumentsField()
-                projectDirectoryPicker()
+                workingDirectoryPicker()
                 excludeNonProjectFilesCheckbox()
             }
         }
@@ -221,24 +221,24 @@ abstract class GeneralConfigurable(
             setter = { settings.arguments = it.trim() },
         )
     }.rowComment(
-        CommonBundle.message("configurable.arguments.hint_recommended", config.recommendedArguments),
+        CommonBundle.message("configurable.arguments.hint_recommended", config.argumentsDescription),
         maxLineLength = MAX_LINE_LENGTH_WORD_WRAP
     ).layout(RowLayout.PARENT_GRID)
 
-    private fun Panel.projectDirectoryPicker() = row {
-        label(CommonBundle.message("configurable.project_directory.label"))
+    private fun Panel.workingDirectoryPicker() = row {
+        label(CommonBundle.message("configurable.working_directory.label"))
         val directoryChooserDescriptor = FileChooserDescriptor(false, true, false, false, false, false)
         textFieldWithBrowseButton(
             project = project, fileChooserDescriptor = directoryChooserDescriptor
         ).align(Align.FILL).bindText(
-            getter = { settings.projectDirectory ?: project.guessProjectDir()?.path ?: "" },
-            setter = { settings.projectDirectory = it },
+            getter = { settings.workingDirectory ?: project.guessProjectDir()?.path ?: "" },
+            setter = { settings.workingDirectory = it.ifBlank { null } },
         ).validationOnInput { field ->
             if (field.text.isBlank()) {
-                return@validationOnInput warning(CommonBundle.message("configurable.project_directory.empty_warning"))
+                return@validationOnInput warning(CommonBundle.message("configurable.working_directory.empty_warning"))
             }
             null
-        }.validationOnApply(::validateProjectDirectory)
+        }.validationOnApply(::validateWorkingDirectory)
     }.layout(RowLayout.PARENT_GRID)
 
     private fun Panel.excludeNonProjectFilesCheckbox() = row {
