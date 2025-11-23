@@ -12,7 +12,6 @@ import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.ui.ValidationInfo
@@ -231,7 +230,7 @@ abstract class GeneralConfigurable(
         textFieldWithBrowseButton(
             project = project, fileChooserDescriptor = directoryChooserDescriptor
         ).align(Align.FILL).bindText(
-            getter = { settings.workingDirectory ?: project.guessProjectDir()?.path ?: "" },
+            getter = { settings.workingDirectory ?: "" },
             setter = { settings.workingDirectory = it.ifBlank { null } },
         ).validationOnInput { field ->
             if (field.text.isBlank()) {
