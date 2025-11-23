@@ -47,6 +47,9 @@ abstract class AbstractPluginPackageManagementService {
 
     // open for testing purposes
     open fun checkInstalledRequirement(): Result<Unit> {
+        if (isRemote()) return Result.failure(
+            PluginPackageManagementException.SdkNotSupportedException()
+        )
         val requirement = getRequirement()
         val packageManager =
             getPackageManager() ?: return Result.failure(UnsupportedOperationException("No package manager found"))
@@ -88,4 +91,5 @@ sealed class PluginPackageManagementException : RuntimeException() {
     class InstallationFailedException(override val message: String) : PluginPackageManagementException()
     class PackageNotInstalledException : PluginPackageManagementException()
     class PackageVersionObsoleteException : PluginPackageManagementException()
+    class SdkNotSupportedException() : PluginPackageManagementException()
 }
