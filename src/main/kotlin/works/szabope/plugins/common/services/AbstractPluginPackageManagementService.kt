@@ -2,7 +2,6 @@ package works.szabope.plugins.common.services
 
 import com.intellij.openapi.project.Project
 import com.intellij.platform.ide.progress.withBackgroundProgress
-import com.intellij.remote.RemoteSdkProperties
 import com.jetbrains.python.getOrThrow
 import com.jetbrains.python.isSuccess
 import com.jetbrains.python.packaging.PyPackage
@@ -41,7 +40,10 @@ abstract class AbstractPluginPackageManagementService {
         }
     }
 
-    fun isWSL() = (project.pythonSdk?.sdkAdditionalData as? RemoteSdkProperties)?.sdkId?.startsWith("WSL") ?: false
+    fun isRemote(): Boolean {
+        val sdk = project.pythonSdk ?: return false
+        return PythonSdkUtil.isRemote(sdk)
+    }
 
     // open for testing purposes
     open fun checkInstalledRequirement(): Result<Unit> {

@@ -18,7 +18,6 @@ import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.Condition
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
-import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.ComponentPredicate
 import com.intellij.ui.layout.ValidationInfoBuilder
@@ -62,13 +61,21 @@ abstract class GeneralConfigurable(
     protected abstract val defaultArguments: String
 
     abstract fun validateExecutable(path: String?): String?
-    abstract fun validateSdk(builder: ValidationInfoBuilder, button: JBRadioButton): ValidationInfo?
+    abstract fun validateLocalSdk(): String?
     abstract fun validateConfigFilePath(
         builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton
     ): ValidationInfo?
 
     private var executablePathError: String? = null
     private lateinit var pathToExecutableField: Cell<TextFieldWithBrowseButton>
+    private var sdkError: String? = null
+
+    private fun validateSdk(): String? {
+        if (isRemoteSdk()) {
+            return CommonBundle.message("configurable.remote_sdk_not_supported")
+        }
+        return validateLocalSdk()
+    }
 
     fun validateWorkingDirectory(builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton): ValidationInfo? {
         val path = field.text.trimToNull() ?: return null
@@ -103,10 +110,16 @@ abstract class GeneralConfigurable(
         val futureExecutablePathValidity = ApplicationManager.getApplication().executeOnPooledThread(Callable {
             validateExecutable(pathToExecutableField.component.text)
         })
+        val futureSdkValidity = ApplicationManager.getApplication().executeOnPooledThread(Callable {
+            validateSdk()
+        })
         executablePathError =
             runWithModalProgressBlocking(project, config.pickerDirectOptionVersionCheckProgressTitle) {
                 futureExecutablePathValidity.get()
             }
+        runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.validating_sdk")) {
+            sdkError = futureSdkValidity.get()
+        }
         val validationResults = runCatching {
             (createComponent() as DialogPanel).validateAll()
         }.processErrorAndGet { error(it) }
@@ -141,12 +154,18 @@ abstract class GeneralConfigurable(
         }
     }
 
+    private fun isRemoteSdk(): Boolean {
+        val futureIsRemoteSdk = ApplicationManager.getApplication().executeOnPooledThread(Callable {
+            packageManager.isRemote()
+        })
+        return runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.is_remote_sdk")) {
+            futureIsRemoteSdk.get()
+        }
+    }
+
     private fun Row.installButton(enabled: ComponentPredicate) {
         val buttonClicked = AtomicBooleanProperty(false)
         val action = ActionManager.getInstance().getAction(config.installActionId)
-        label(project.pythonSdk?.let { PySdkPopupFactory.shortenNameInPopup(it, 50) } ?: noInterpreterMarker).align(
-            Align.FILL
-        )
         lateinit var result: Cell<JButton>
         result = button(config.installButtonText) {
             val dataContext = DataManager.getInstance().getDataContext(result.component)
@@ -186,16 +205,24 @@ abstract class GeneralConfigurable(
             }.validationOnApply { field ->
                 return@validationOnApply executablePathError.takeIf { field.isEnabled }?.let(::error)
             }.resizableColumn().enabledIf(executableOption.selected)
-        }.rowComment(CommonBundle.message("configurable.executable_path_option_marked_for_removal"))
-            .layout(RowLayout.PARENT_GRID)
+        }.layout(RowLayout.PARENT_GRID)
         row {
             val sdkOption = radioButton(config.pickerSdkOptionTitle, USE_PROJECT_SDK).enabled(
                 project.pythonSdk != null
-            ).validationOnInput(::validateSdk)
+            ).validationOnInput {
+                validateSdk()?.let { error(it) }
+            }.validationOnApply { field ->
+                return@validationOnApply sdkError.takeIf { field.isSelected }?.let(::error)
+            }
             sdkOption.component
+            label(project.pythonSdk?.let { PySdkPopupFactory.shortenNameInPopup(it, 50) } ?: noInterpreterMarker).align(
+                Align.FILL
+            )
             installButton(sdkOption.selected)
         }.rowComment(
-            comment = if (!isLocalEnvironment()) {
+            comment = if (isRemoteSdk()) {
+                "<code><icon src='AllIcons.General.ExclMark'></code>" + CommonBundle.message("configurable.remote_sdk_not_supported")
+            } else if (!isLocalEnvironment()) {
                 CommonBundle.message("configurable.system_wide_installation_warning")
             } else {
                 ""
