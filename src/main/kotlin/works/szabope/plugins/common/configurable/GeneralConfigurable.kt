@@ -236,20 +236,16 @@ abstract class GeneralConfigurable(
             getter = { settings.configFilePath },
             setter = { settings.configFilePath = it.trim() },
         ).validationOnApply(::validateConfigFilePath)
-    }.rowComment(
-        config.configFilePickerRowComment, maxLineLength = MAX_LINE_LENGTH_WORD_WRAP
-    ).layout(RowLayout.PARENT_GRID)
+            .comment(config.configFilePickerRowComment, maxLineLength = MAX_LINE_LENGTH_WORD_WRAP)
+    }.layout(RowLayout.PARENT_GRID)
 
     private fun Panel.argumentsField() = row {
         label(CommonBundle.message("configurable.arguments.label"))
         textField().align(Align.FILL).bindText(
             getter = { settings.arguments.ifBlank { defaultArguments } },
             setter = { settings.arguments = it.trim() },
-        )
-    }.rowComment(
-        CommonBundle.message("configurable.arguments.hint_recommended", config.argumentsDescription),
-        maxLineLength = MAX_LINE_LENGTH_WORD_WRAP
-    ).layout(RowLayout.PARENT_GRID)
+        ).comment(config.argumentsDescription, maxLineLength = MAX_LINE_LENGTH_WORD_WRAP)
+    }.layout(RowLayout.PARENT_GRID)
 
     private fun Panel.workingDirectoryPicker() = row {
         label(CommonBundle.message("configurable.working_directory.label"))
