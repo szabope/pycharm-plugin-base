@@ -58,7 +58,6 @@ abstract class GeneralConfigurable(
 
     protected abstract val settings: Settings
     protected abstract val packageManager: AbstractPluginPackageManagementService
-    protected abstract val defaultArguments: String
 
     abstract fun validateExecutable(path: String?): String?
     abstract fun validateLocalSdk(): String?
@@ -242,7 +241,7 @@ abstract class GeneralConfigurable(
     private fun Panel.argumentsField() = row {
         label(CommonBundle.message("configurable.arguments.label"))
         textField().align(Align.FILL).bindText(
-            getter = { settings.arguments.ifBlank { defaultArguments } },
+            getter = { settings.arguments },
             setter = { settings.arguments = it.trim() },
         ).comment(config.argumentsDescription, maxLineLength = MAX_LINE_LENGTH_WORD_WRAP)
     }.layout(RowLayout.PARENT_GRID)
