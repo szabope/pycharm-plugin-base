@@ -59,11 +59,6 @@ abstract class ToolExecutor(private val project: Project, private val moduleToRu
             if (handler.isProcessTerminating || handler.isProcessTerminated) return@awaitClose
             handler.destroyProcess()
         }
-
-        // suspend until process terminates
-        withContext(Dispatchers.IO) {
-            handler.waitFor()
-        }
     }.buffer(Channel.UNLIMITED)
 
     protected open fun isError(event: ProcessEvent): Boolean {

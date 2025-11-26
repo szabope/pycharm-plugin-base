@@ -58,7 +58,6 @@ abstract class GeneralConfigurable(
 
     protected abstract val settings: Settings
     protected abstract val packageManager: AbstractPluginPackageManagementService
-    protected abstract val defaultArguments: String
 
     abstract fun validateExecutable(path: String?): String?
     abstract fun validateLocalSdk(): String?
@@ -71,7 +70,7 @@ abstract class GeneralConfigurable(
     private var sdkError: String? = null
 
     private fun validateSdk(): String? {
-        if (isRemoteSdk()) {
+        if (packageManager.isRemote()) {
             return CommonBundle.message("configurable.remote_sdk_not_supported")
         }
         return validateLocalSdk()
@@ -117,8 +116,8 @@ abstract class GeneralConfigurable(
             runWithModalProgressBlocking(project, config.pickerDirectOptionVersionCheckProgressTitle) {
                 futureExecutablePathValidity.get()
             }
-        runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.validating_sdk")) {
-            sdkError = futureSdkValidity.get()
+        sdkError = runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.validating_sdk")) {
+            futureSdkValidity.get()
         }
         val validationResults = runCatching {
             (createComponent() as DialogPanel).validateAll()
@@ -151,15 +150,6 @@ abstract class GeneralConfigurable(
             project, CommonBundle.message("configurable.progress.is_local_environment")
         ) {
             futureIsLocalEnvironment.get()
-        }
-    }
-
-    private fun isRemoteSdk(): Boolean {
-        val futureIsRemoteSdk = ApplicationManager.getApplication().executeOnPooledThread(Callable {
-            packageManager.isRemote()
-        })
-        return runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.is_remote_sdk")) {
-            futureIsRemoteSdk.get()
         }
     }
 
@@ -220,7 +210,7 @@ abstract class GeneralConfigurable(
             )
             installButton(sdkOption.selected)
         }.rowComment(
-            comment = if (isRemoteSdk()) {
+            comment = if (packageManager.isRemote()) {
                 "<code><icon src='AllIcons.General.ExclMark'></code>" + CommonBundle.message("configurable.remote_sdk_not_supported")
             } else if (!isLocalEnvironment()) {
                 CommonBundle.message("configurable.system_wide_installation_warning")
@@ -242,7 +232,7 @@ abstract class GeneralConfigurable(
     private fun Panel.argumentsField() = row {
         label(CommonBundle.message("configurable.arguments.label"))
         textField().align(Align.FILL).bindText(
-            getter = { settings.arguments.ifBlank { defaultArguments } },
+            getter = { settings.arguments },
             setter = { settings.arguments = it.trim() },
         ).comment(config.argumentsDescription, maxLineLength = MAX_LINE_LENGTH_WORD_WRAP)
     }.layout(RowLayout.PARENT_GRID)
