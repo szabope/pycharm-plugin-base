@@ -70,7 +70,7 @@ abstract class GeneralConfigurable(
     private var sdkError: String? = null
 
     private fun validateSdk(): String? {
-        if (isRemoteSdk()) {
+        if (packageManager.isRemote()) {
             return CommonBundle.message("configurable.remote_sdk_not_supported")
         }
         return validateLocalSdk()
@@ -116,8 +116,8 @@ abstract class GeneralConfigurable(
             runWithModalProgressBlocking(project, config.pickerDirectOptionVersionCheckProgressTitle) {
                 futureExecutablePathValidity.get()
             }
-        runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.validating_sdk")) {
-            sdkError = futureSdkValidity.get()
+        sdkError = runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.validating_sdk")) {
+            futureSdkValidity.get()
         }
         val validationResults = runCatching {
             (createComponent() as DialogPanel).validateAll()
@@ -150,15 +150,6 @@ abstract class GeneralConfigurable(
             project, CommonBundle.message("configurable.progress.is_local_environment")
         ) {
             futureIsLocalEnvironment.get()
-        }
-    }
-
-    private fun isRemoteSdk(): Boolean {
-        val futureIsRemoteSdk = ApplicationManager.getApplication().executeOnPooledThread(Callable {
-            packageManager.isRemote()
-        })
-        return runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.is_remote_sdk")) {
-            futureIsRemoteSdk.get()
         }
     }
 
@@ -219,7 +210,7 @@ abstract class GeneralConfigurable(
             )
             installButton(sdkOption.selected)
         }.rowComment(
-            comment = if (isRemoteSdk()) {
+            comment = if (packageManager.isRemote()) {
                 "<code><icon src='AllIcons.General.ExclMark'></code>" + CommonBundle.message("configurable.remote_sdk_not_supported")
             } else if (!isLocalEnvironment()) {
                 CommonBundle.message("configurable.system_wide_installation_warning")
