@@ -10,7 +10,6 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.containers.ContainerUtil
 import com.jetbrains.python.PyNames
-import com.jetbrains.python.codeInsight.typing.PyTypeShed
 import com.jetbrains.python.psi.LanguageLevel
 import com.jetbrains.python.sdk.PythonSdkAdditionalData
 import com.jetbrains.python.sdk.PythonSdkType
@@ -45,7 +44,7 @@ object PythonMockSdk {
         )
         sdkModificator.versionString = toVersionString(level)
 
-        createRoots(sdkPath, level).forEach(Consumer { vFile: VirtualFile? ->
+        createRoots(sdkPath).forEach(Consumer { vFile: VirtualFile? ->
             sdkModificator.addRoot(vFile!!, OrderRootType.CLASSES)
         })
 
@@ -67,14 +66,13 @@ object PythonMockSdk {
         //return sdk.clone();
     }
 
-    private fun createRoots(@NonNls mockSdkPath: String, level: LanguageLevel): List<VirtualFile> {
+    private fun createRoots(@NonNls mockSdkPath: String): List<VirtualFile> {
         val result = ArrayList<VirtualFile>()
         val localFS = LocalFileSystem.getInstance()
         ContainerUtil.addIfNotNull(result, localFS.refreshAndFindFileByIoFile(File(mockSdkPath, "Lib")))
         ContainerUtil.addIfNotNull(
             result, localFS.refreshAndFindFileByIoFile(File(mockSdkPath, PythonSdkUtil.SKELETON_DIR_NAME))
         )
-        result.addAll(PyTypeShed.findAllRootsForLanguageLevel(level))
         return result
     }
 
