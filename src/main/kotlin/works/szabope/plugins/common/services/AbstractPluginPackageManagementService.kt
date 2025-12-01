@@ -7,8 +7,8 @@ import com.jetbrains.python.isSuccess
 import com.jetbrains.python.packaging.PyPackage
 import com.jetbrains.python.packaging.PyRequirement
 import com.jetbrains.python.packaging.common.PythonPackage
-import com.jetbrains.python.packaging.common.PythonRepositoryPackageSpecification
 import com.jetbrains.python.packaging.management.PythonPackageManager
+import com.jetbrains.python.packaging.management.findPackageSpecification
 import com.jetbrains.python.packaging.management.getInstalledPackageSnapshot
 import com.jetbrains.python.packaging.management.toInstallRequest
 import com.jetbrains.python.sdk.PythonSdkUtil
@@ -66,9 +66,8 @@ abstract class AbstractPluginPackageManagementService {
     open suspend fun installRequirement(): Result<Unit> {
         val packageManager = getPackageManager()!!
         val requirement = getRequirement()
-        val versionSpec = requirement.versionSpecs.firstOrNull()
-        val specification = PythonRepositoryPackageSpecification(
-            packageManager.repositoryManager.repositories.first(), requirement.name, versionSpec
+        val specification = packageManager.findPackageSpecification(requirement) ?: return Result.failure(
+            PluginPackageManagementException.InstallationFailedException("Package ${requirement.presentableText} not found")
         )
         val installResult = withBackgroundProgress(
             project, CommonBundle.message("configurable.installation_in_progress", requirement.name), cancellable = true
