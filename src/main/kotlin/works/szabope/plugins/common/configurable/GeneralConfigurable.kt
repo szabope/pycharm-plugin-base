@@ -81,10 +81,10 @@ abstract class GeneralConfigurable(
         require(path.isNotBlank())
         val file = File(path)
         if (!file.exists()) {
-            return builder.error(CommonBundle.message("configurable.path_to_project_directory.not_exist"))
+            return builder.error(CommonBundle.message("configurable.path_to_working_directory.not_exist"))
         }
         if (!file.isDirectory) {
-            return builder.error(CommonBundle.message("configurable.path_to_project_directory.is_not_directory"))
+            return builder.error(CommonBundle.message("configurable.path_to_working_directory.is_not_directory"))
         }
         return null
     }
