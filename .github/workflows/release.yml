@@ -1,0 +1,88 @@
+# Runs on master when master is updated or workflow is triggered manually.
+# If gradle.properties > pluginVersion already exists as a tag, nothing happens.
+# Otherwise, 'latest' tag is removed and - along with version coming from pluginVersion - added to master's HEAD.
+
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  precheck:
+    name: Check plugin version tag
+    runs-on: ubuntu-latest
+    outputs:
+      plugin_version: ${{ steps.version.outputs.plugin_version }}
+      tag_missing: ${{ steps.check.outputs.tag_missing }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch master and tags
+        run: |
+          git fetch --prune --tags origin \
+            +refs/heads/master:refs/remotes/origin/master
+
+      - name: Read pluginVersion
+        id: version
+        run: |
+          VERSION=$(sed -nE 's/^[[:space:]]*pluginVersion[[:space:]]*=[[:space:]]*([^[:space:]#]+).*/\1/p' gradle.properties | head -n1)
+          if [ -z "$VERSION" ]; then
+            echo "pluginVersion not found in gradle.properties"
+            exit 1
+          fi
+          echo "plugin_version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check if pluginVersion tag exists
+        id: check
+        run: |
+          if git rev-parse -q --verify "refs/tags/${{ steps.version.outputs.plugin_version }}" >/dev/null; then
+            echo "tag_missing=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag_missing=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    name: Update release tags
+    runs-on: ubuntu-latest
+    needs: precheck
+    if: needs.precheck.outputs.tag_missing == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch master and tags
+        run: |
+          git fetch --prune --tags origin \
+            +refs/heads/master:refs/remotes/origin/master
+
+      - name: Remove latest tag if it exists
+        run: |
+          if git rev-parse -q --verify refs/tags/latest >/dev/null; then
+            git tag -d latest
+          fi
+          if git ls-remote --tags origin | grep -q 'refs/tags/latest$'; then
+            git push origin :refs/tags/latest
+          fi
+
+      - name: Add latest and pluginVersion tags to master HEAD
+        env:
+          PLUGIN_VERSION: ${{ needs.precheck.outputs.plugin_version }}
+        run: |
+          TARGET_SHA=$(git rev-parse refs/remotes/origin/master)
+
+          git tag -f latest "$TARGET_SHA"
+          git tag "$PLUGIN_VERSION" "$TARGET_SHA"
+
+          git push origin refs/tags/latest --force
+          git push origin "refs/tags/$PLUGIN_VERSION"
