@@ -15,6 +15,7 @@ import com.jetbrains.python.sdk.PythonSdkUtil
 import com.jetbrains.python.sdk.pythonSdk
 import works.szabope.plugins.common.CommonBundle
 
+@Suppress("UnstableApiUsage")
 abstract class AbstractPluginPackageManagementService {
 
     protected abstract val project: Project
@@ -32,11 +33,17 @@ abstract class AbstractPluginPackageManagementService {
     }
 
     open suspend fun reloadPackages(): Result<List<PythonPackage>>? {
-        return try {
-            getPackageManager()?.reloadPackages()?.getOrThrow()?.let { Result.success(it) }
+        val manager = getPackageManager() ?: return null
+        val pyResult = try {
+            manager.reloadPackages()
         } catch (e: Exception) {
             // e.g. org.apache.hc.client5.http.HttpHostConnectException thrown when docker (in given SDK) is unavailable
-            Result.failure(e)
+            return Result.failure(e)
+        }
+        return if (pyResult.isSuccess) {
+            Result.success(pyResult.getOrThrow())
+        } else {
+            Result.failure(RuntimeException(pyResult.errorOrNull?.message))
         }
     }
 
@@ -64,7 +71,8 @@ abstract class AbstractPluginPackageManagementService {
 
     // open for testing purposes
     open suspend fun installRequirement(): Result<Unit> {
-        val packageManager = getPackageManager()!!
+        val packageManager = getPackageManager()
+            ?: return Result.failure(PluginPackageManagementException.InstallationFailedException("No package manager found"))
         val requirement = getRequirement()
         val specification = packageManager.findPackageSpecification(requirement) ?: return Result.failure(
             PluginPackageManagementException.InstallationFailedException("Package ${requirement.presentableText} not found")
@@ -77,7 +85,8 @@ abstract class AbstractPluginPackageManagementService {
         return if (installResult.isSuccess) {
             Result.success(Unit)
         } else {
-            Result.failure(PluginPackageManagementException.InstallationFailedException(installResult.errorOrNull!!.message))
+            val errorMessage = installResult.errorOrNull?.message ?: "Installation failed"
+            Result.failure(PluginPackageManagementException.InstallationFailedException(errorMessage))
         }
     }
 
