@@ -25,7 +25,7 @@ import com.intellij.ui.layout.and
 import com.jetbrains.python.sdk.PySdkPopupFactory
 import com.jetbrains.python.sdk.noInterpreterMarker
 import com.jetbrains.python.sdk.pythonSdk
-import com.jetbrains.rd.util.Callable
+import java.util.concurrent.Callable
 import org.jetbrains.annotations.VisibleForTesting
 import works.szabope.plugins.common.CommonBundle
 import works.szabope.plugins.common.processErrorAndGet
