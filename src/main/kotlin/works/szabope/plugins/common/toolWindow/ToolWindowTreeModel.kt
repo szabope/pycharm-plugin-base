@@ -48,13 +48,19 @@ class RootNode(text: String, val targets: Collection<VirtualFile>) : DefaultMuta
     }
 
     fun getIssueCount(): Int = issueCountStat.get()
+
+    override fun clone(): Any = throw CloneNotSupportedException()
 }
 
 @Internal
-class StringNode(text: String) : DefaultMutableTreeNode(text, true)
+class StringNode(text: String) : DefaultMutableTreeNode(text, true) {
+    override fun clone(): Any = throw CloneNotSupportedException()
+}
 
 @Internal
-class IssueNode(issue: TreeModelDataItem) : DefaultMutableTreeNode(IssueNodeUserObject(issue))
+class IssueNode(issue: TreeModelDataItem) : DefaultMutableTreeNode(IssueNodeUserObject(issue)) {
+    override fun clone(): Any = throw CloneNotSupportedException()
+}
 
 @Internal
 class IssueNodeUserObject(issue: TreeModelDataItem) :
