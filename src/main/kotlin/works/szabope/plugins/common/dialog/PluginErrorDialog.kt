@@ -7,6 +7,7 @@ import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import java.awt.Dimension
+import java.awt.KeyboardFocusManager
 
 data class PluginErrorDescription(
     @DetailedDescription val details: String?, @DetailedDescription val message: String? = null
@@ -16,11 +17,15 @@ open class PluginErrorDialog(
     title: @DialogTitle String, private val description: PluginErrorDescription
 ) : DialogWrapper(false) {
 
+    private val dialogWidth = (KeyboardFocusManager.getCurrentKeyboardFocusManager()
+        .activeWindow?.width?.times(0.75))?.toInt() ?: JBUI.scale(800)
+
     init {
         setTitle(title)
         super.init()
         setErrorText(description.message)
-        contentPanel.maximumSize = Dimension(JBUI.scale(800), contentPanel.preferredSize.height)
+        contentPanel.preferredSize = Dimension(dialogWidth, 0)
+        contentPanel.maximumSize = Dimension(dialogWidth, contentPanel.preferredSize.height)
     }
 
     override fun createCenterPanel() = description.details?.let { details ->
@@ -31,7 +36,7 @@ open class PluginErrorDialog(
                     isEditable = false
                     lineWrap = true
                     wrapStyleWord = true
-                    setSize(JBUI.scale(800), 0)
+                    setSize(dialogWidth, 0)
                 }.align(AlignX.FILL)
             }
         }
