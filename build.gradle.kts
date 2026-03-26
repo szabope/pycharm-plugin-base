@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.serialization) // Gradle Kotlin Serialization Plugin
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
     id("maven-publish")
+    id("java-test-fixtures")
 }
 
 group = providers.gradleProperty("pluginGroup").get()
