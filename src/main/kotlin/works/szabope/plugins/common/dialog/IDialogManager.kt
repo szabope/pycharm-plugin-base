@@ -1,6 +1,6 @@
 package works.szabope.plugins.common.dialog
 
-import works.szabope.plugins.common.services.ImmutableSettingsData
+import works.szabope.plugins.common.services.ToolExecutorConfiguration
 import works.szabope.plugins.common.services.PluginPackageManagementException
 
 interface PluginDialog {
@@ -14,7 +14,7 @@ interface IDialogManager {
     fun createPyPackageInstallationErrorDialog(exception: PluginPackageManagementException.InstallationFailedException): PluginDialog
 
     fun createToolExecutionErrorDialog(
-        configuration: ImmutableSettingsData,
+        configuration: ToolExecutorConfiguration,
         result: String,
         resultCode: Int
     ): PluginDialog
@@ -22,7 +22,7 @@ interface IDialogManager {
     fun createFailedToExecuteErrorDialog(message: String): PluginDialog
 
     fun createToolOutputParseErrorDialog(
-        configuration: ImmutableSettingsData, targets: String, json: String, error: String
+        configuration: ToolExecutorConfiguration, targets: String, json: String, error: String
     ): PluginDialog
 
     fun createGeneralErrorDialog(failure: Throwable): PluginDialog
@@ -39,7 +39,7 @@ interface IDialogManager {
             showDialog(dialog)
         }
 
-        fun showToolExecutionErrorDialog(configuration: ImmutableSettingsData, result: String, resultCode: Int) =
+        fun showToolExecutionErrorDialog(configuration: ToolExecutorConfiguration, result: String, resultCode: Int) =
             with(dialogManager) {
                 val dialog = createToolExecutionErrorDialog(configuration, result, resultCode)
                 showDialog(dialog)
@@ -51,7 +51,7 @@ interface IDialogManager {
         }
 
         fun showToolOutputParseErrorDialog(
-            configuration: ImmutableSettingsData, targets: String, json: String, error: String
+            configuration: ToolExecutorConfiguration, targets: String, json: String, error: String
         ) = with(dialogManager) {
             val dialog = createToolOutputParseErrorDialog(configuration, targets, json, error)
             showDialog(dialog)

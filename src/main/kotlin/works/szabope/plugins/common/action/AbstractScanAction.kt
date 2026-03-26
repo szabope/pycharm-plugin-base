@@ -15,7 +15,7 @@ import com.jetbrains.python.pyi.PyiFileType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.future
 import kotlinx.coroutines.launch
-import works.szabope.plugins.common.services.ImmutableSettingsData
+import works.szabope.plugins.common.services.ToolExecutorConfiguration
 import works.szabope.plugins.common.services.Settings
 import works.szabope.plugins.common.toolWindow.ITreeService
 
@@ -31,7 +31,7 @@ abstract class AbstractScanAction : DumbAwareAction() {
     abstract suspend fun scanAndAdd(
         project: Project,
         targets: Collection<VirtualFile>,
-        configuration: ImmutableSettingsData,
+        configuration: ToolExecutorConfiguration,
         treeService: ITreeService
     )
 

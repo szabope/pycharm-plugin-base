@@ -16,13 +16,13 @@ import com.intellij.testFramework.LightVirtualFile
 import com.intellij.util.DocumentUtil
 import fleet.util.letIfNotNull
 import kotlinx.coroutines.runBlocking
-import works.szabope.plugins.common.services.ImmutableSettingsData
+import works.szabope.plugins.common.services.ToolExecutorConfiguration
 import works.szabope.plugins.common.services.Settings
 
 abstract class ToolAnnotator<T : ToolMessage> : ExternalAnnotator<ToolAnnotator.AnnotatorInfo, List<T>>(), DumbAware {
 
     abstract fun getSettingsInstance(project: Project): Settings
-    abstract fun scan(info: AnnotatorInfo, configuration: ImmutableSettingsData): List<T>
+    abstract fun scan(info: AnnotatorInfo, configuration: ToolExecutorConfiguration): List<T>
     abstract val inspectionId: String
     abstract fun createIntention(message: T): IntentionAction?
 
