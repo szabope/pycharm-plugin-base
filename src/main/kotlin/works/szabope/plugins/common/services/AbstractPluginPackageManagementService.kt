@@ -1,28 +1,21 @@
 package works.szabope.plugins.common.services
 
+import com.intellij.execution.ExecutionException
 import com.intellij.openapi.project.Project
-import com.intellij.platform.ide.progress.withBackgroundProgress
-import com.jetbrains.python.getOrThrow
-import com.jetbrains.python.isSuccess
 import com.jetbrains.python.packaging.PyPackage
+import com.jetbrains.python.packaging.PyPackageManagerUI
 import com.jetbrains.python.packaging.PyRequirement
-import com.jetbrains.python.packaging.common.PythonPackage
 import com.jetbrains.python.packaging.management.PythonPackageManager
-import com.jetbrains.python.packaging.management.findPackageSpecification
-import com.jetbrains.python.packaging.management.getInstalledPackageSnapshot
-import com.jetbrains.python.packaging.management.toInstallRequest
 import com.jetbrains.python.sdk.PythonSdkUtil
 import com.jetbrains.python.sdk.pythonSdk
-import works.szabope.plugins.common.CommonBundle
 
-@Suppress("UnstableApiUsage")
 abstract class AbstractPluginPackageManagementService {
 
     protected abstract val project: Project
 
     abstract fun getRequirement(): PyRequirement
 
-    fun canInstall(): Boolean {
+    suspend fun canInstall(): Boolean {
         val sdk = project.pythonSdk ?: return false
         return !PythonSdkUtil.isRemote(sdk) && checkInstalledRequirement().isFailure
     }
@@ -32,37 +25,23 @@ abstract class AbstractPluginPackageManagementService {
         return PythonSdkUtil.isVirtualEnv(sdk) || PythonSdkUtil.isCondaVirtualEnv(sdk)
     }
 
-    open suspend fun reloadPackages(): Result<List<PythonPackage>>? {
-        val manager = getPackageManager() ?: return null
-        val pyResult = try {
-            manager.reloadPackages()
-        } catch (e: Exception) {
-            // e.g. org.apache.hc.client5.http.HttpHostConnectException thrown when docker (in given SDK) is unavailable
-            return Result.failure(e)
-        }
-        return if (pyResult.isSuccess) {
-            Result.success(pyResult.getOrThrow())
-        } else {
-            Result.failure(RuntimeException(pyResult.errorOrNull?.message))
-        }
-    }
-
     fun isRemote(): Boolean {
         val sdk = project.pythonSdk ?: return false
         return PythonSdkUtil.isRemote(sdk)
     }
 
     // open for testing purposes
-    open fun checkInstalledRequirement(): Result<Unit> {
+    open suspend fun checkInstalledRequirement(): Result<Unit> {
         if (isRemote()) return Result.failure(
             PluginPackageManagementException.SdkNotSupportedException()
         )
         val requirement = getRequirement()
         val packageManager =
             getPackageManager() ?: return Result.failure(UnsupportedOperationException("No package manager found"))
-        val installedPackage = packageManager.getInstalledPackageSnapshot(requirement.name) ?: return Result.failure(
-            PluginPackageManagementException.PackageNotInstalledException()
-        )
+        @Suppress("UnstableApiUsage") val installedPackage =
+            packageManager.listInstalledPackages().firstOrNull { it.name == requirement.name } ?: return Result.failure(
+                PluginPackageManagementException.PackageNotInstalledException()
+            )
         if (!getRequirement().match(PyPackage(installedPackage.name, installedPackage.version))) {
             return Result.failure(PluginPackageManagementException.PackageVersionObsoleteException())
         }
@@ -70,28 +49,29 @@ abstract class AbstractPluginPackageManagementService {
     }
 
     // open for testing purposes
-    open suspend fun installRequirement(): Result<Unit> {
-        val packageManager = getPackageManager()
+    open suspend fun installRequirementWithCallback(callback: () -> Unit): Result<Unit> {
+        val packageManager = getPackageManagerUI(callback)
             ?: return Result.failure(PluginPackageManagementException.InstallationFailedException("No package manager found"))
         val requirement = getRequirement()
-        val specification = packageManager.findPackageSpecification(requirement) ?: return Result.failure(
-            PluginPackageManagementException.InstallationFailedException("Package ${requirement.presentableText} not found")
-        )
-        val installResult = withBackgroundProgress(
-            project, CommonBundle.message("configurable.installation_in_progress", requirement.name), cancellable = true
-        ) {
-            packageManager.installPackage(specification.toInstallRequest(), options = emptyList())
-        }
-        return if (installResult.isSuccess) {
-            Result.success(Unit)
-        } else {
-            val errorMessage = installResult.errorOrNull?.message ?: "Installation failed"
-            Result.failure(PluginPackageManagementException.InstallationFailedException(errorMessage))
-        }
+        packageManager.install(listOf(requirement), emptyList<String>())
+        // may still be a failure, but that is handled via PythonPackageManagerUI.sink internally
+        return Result.success(Unit)
     }
 
+    @Suppress("UnstableApiUsage")
     private fun getPackageManager(): PythonPackageManager? {
         return project.pythonSdk?.let { PythonPackageManager.forSdk(project, it) }
+    }
+
+    private fun getPackageManagerUI(callback: () -> Unit): PyPackageManagerUI? {
+        val l = object : PyPackageManagerUI.Listener {
+            override fun started() = Unit
+
+            override fun finished(exceptions: List<ExecutionException?>?) {
+                callback()
+            }
+        }
+        return project.pythonSdk?.let { PyPackageManagerUI(project, it, l) }
     }
 }
 
@@ -99,5 +79,5 @@ sealed class PluginPackageManagementException : RuntimeException() {
     class InstallationFailedException(override val message: String) : PluginPackageManagementException()
     class PackageNotInstalledException : PluginPackageManagementException()
     class PackageVersionObsoleteException : PluginPackageManagementException()
-    class SdkNotSupportedException() : PluginPackageManagementException()
+    class SdkNotSupportedException : PluginPackageManagementException()
 }

@@ -11,5 +11,5 @@ interface Settings : SettingsData {
     override var executablePath: String
 
     suspend fun initSettings(oldSettings: BasicSettingsData)
-    fun getValidConfiguration(): Result<ImmutableSettingsData>
+    suspend fun getValidConfiguration(): Result<ImmutableSettingsData>
 }

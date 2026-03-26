@@ -6,6 +6,7 @@ import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.profile.codeInspection.InspectionProjectProfileManager
@@ -14,10 +15,11 @@ import com.intellij.psi.PsiFile
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.util.DocumentUtil
 import fleet.util.letIfNotNull
+import kotlinx.coroutines.runBlocking
 import works.szabope.plugins.common.services.ImmutableSettingsData
 import works.szabope.plugins.common.services.Settings
 
-abstract class ToolAnnotator<T : ToolMessage> : ExternalAnnotator<ToolAnnotator.AnnotatorInfo, List<T>>() {
+abstract class ToolAnnotator<T : ToolMessage> : ExternalAnnotator<ToolAnnotator.AnnotatorInfo, List<T>>(), DumbAware {
 
     abstract fun getSettingsInstance(project: Project): Settings
     abstract fun scan(info: AnnotatorInfo, configuration: ImmutableSettingsData): List<T>
@@ -33,11 +35,10 @@ abstract class ToolAnnotator<T : ToolMessage> : ExternalAnnotator<ToolAnnotator.
     }
 
     override fun doAnnotate(info: AnnotatorInfo): List<T> {
-        val configuration = getSettingsInstance(info.project).getValidConfiguration()
-        if (configuration.isFailure) {
-            return emptyList()
-        }
-        return scan(info, configuration.getOrThrow())
+        val configuration = runBlocking {
+            getSettingsInstance(info.project).getValidConfiguration()
+        }.getOrNull() ?: return emptyList()
+        return scan(info, configuration)
     }
 
     override fun apply(file: PsiFile, annotationResult: List<T>, holder: AnnotationHolder) {

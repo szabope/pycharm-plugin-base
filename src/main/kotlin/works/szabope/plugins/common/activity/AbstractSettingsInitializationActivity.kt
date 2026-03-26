@@ -1,6 +1,5 @@
 package works.szabope.plugins.common.activity
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
@@ -17,9 +16,6 @@ abstract class AbstractSettingsInitializationActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
         if (project.isDefault) {
             return
-        }
-        if (!ApplicationManager.getApplication().isUnitTestMode) {
-            getPackageManagementService(project).reloadPackages()
         }
         val settings = getSettings(project)
         // we trust in old settings' validity

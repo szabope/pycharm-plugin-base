@@ -7,6 +7,7 @@ import com.intellij.openapi.progress.currentThreadCoroutineScope
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.future.future
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
@@ -20,17 +21,19 @@ abstract class AbstractInstallToolAction(private val messageInstalled: String) :
         val project = e.project ?: return
         currentThreadCoroutineScope().launch {
             val result = withContext(Dispatchers.Default) {
-                getPackageManager(project).installRequirement()
+                getPackageManager(project).installRequirementWithCallback {
+                    notifyPanel(project, messageInstalled)
+                    e.getData(Notification.KEY)?.expire()
+                }
             }
-            result.onFailure(::handleFailure).onSuccess {
-                notifyPanel(project, messageInstalled)
-                e.getData(Notification.KEY)?.expire()
-            }
+            result.onFailure(::handleFailure)
         }
     }
 
     override fun update(event: AnActionEvent) {
-        event.presentation.isEnabled = event.project?.let { getPackageManager(it).canInstall() } ?: false
+        event.presentation.isEnabled = currentThreadCoroutineScope().future {
+            event.project?.let { getPackageManager(it).canInstall() } ?: false
+        }.get()
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread {
