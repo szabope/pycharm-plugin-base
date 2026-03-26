@@ -3,13 +3,11 @@ package works.szabope.plugins.common.toolWindow
 import com.intellij.ide.projectView.PresentationData
 import com.intellij.navigation.NavigationItem
 import com.intellij.openapi.vfs.VirtualFile
-import org.jetbrains.annotations.ApiStatus.Internal
 import org.jetbrains.annotations.Nls
 import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreeNode
-import kotlin.collections.iterator
 
 class ToolWindowTreeModel(defaultRootNodeText: String) : DefaultTreeModel(RootNode(defaultRootNodeText, emptyList())) {
 
@@ -38,7 +36,6 @@ class ToolWindowTreeModel(defaultRootNodeText: String) : DefaultTreeModel(RootNo
     }
 }
 
-@Internal
 class RootNode(text: String, val targets: Collection<VirtualFile>) : DefaultMutableTreeNode(text, true) {
 
     private val issueCountStat = AtomicInteger(0)
@@ -52,17 +49,14 @@ class RootNode(text: String, val targets: Collection<VirtualFile>) : DefaultMuta
     override fun clone(): Any = throw CloneNotSupportedException()
 }
 
-@Internal
 class StringNode(text: String) : DefaultMutableTreeNode(text, true) {
     override fun clone(): Any = throw CloneNotSupportedException()
 }
 
-@Internal
 class IssueNode(issue: TreeModelDataItem) : DefaultMutableTreeNode(IssueNodeUserObject(issue)) {
     override fun clone(): Any = throw CloneNotSupportedException()
 }
 
-@Internal
 class IssueNodeUserObject(issue: TreeModelDataItem) :
     PresentationData(issue.toRepresentation(), null, issue.severity.icon, null), NavigationItem {
     val file = issue.file

@@ -25,7 +25,6 @@ import com.intellij.ui.layout.and
 import com.jetbrains.python.sdk.PySdkPopupFactory
 import com.jetbrains.python.sdk.noInterpreterMarker
 import com.jetbrains.python.sdk.pythonSdk
-import java.util.concurrent.Callable
 import org.jetbrains.annotations.VisibleForTesting
 import works.szabope.plugins.common.CommonBundle
 import works.szabope.plugins.common.processErrorAndGet
@@ -33,6 +32,7 @@ import works.szabope.plugins.common.services.AbstractPluginPackageManagementServ
 import works.szabope.plugins.common.services.Settings
 import works.szabope.plugins.common.trimToNull
 import java.io.File
+import java.util.concurrent.Callable
 import javax.swing.JButton
 
 data class ConfigurableConfiguration(
@@ -51,7 +51,6 @@ data class ConfigurableConfiguration(
     val argumentsDescription: String = "",
 )
 
-@Suppress("UnstableApiUsage")
 abstract class GeneralConfigurable(
     private val project: Project, @VisibleForTesting val config: ConfigurableConfiguration
 ) : BoundSearchableConfigurable(config.displayName, config.helpTopic, config.id), Configurable.NoScroll {
@@ -60,7 +59,7 @@ abstract class GeneralConfigurable(
     protected abstract val packageManager: AbstractPluginPackageManagementService
 
     abstract fun validateExecutable(path: String?): String?
-    abstract fun validateLocalSdk(): String?
+    abstract suspend fun validateLocalSdk(): String?
     abstract fun validateConfigFilePath(
         builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton
     ): ValidationInfo?
@@ -73,7 +72,9 @@ abstract class GeneralConfigurable(
         if (packageManager.isRemote()) {
             return CommonBundle.message("configurable.remote_sdk_not_supported")
         }
-        return validateLocalSdk()
+        return runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.validating_sdk")) {
+            validateLocalSdk()
+        }
     }
 
     fun validateWorkingDirectory(builder: ValidationInfoBuilder, field: TextFieldWithBrowseButton): ValidationInfo? {
@@ -109,16 +110,11 @@ abstract class GeneralConfigurable(
         val futureExecutablePathValidity = ApplicationManager.getApplication().executeOnPooledThread(Callable {
             validateExecutable(pathToExecutableField.component.text)
         })
-        val futureSdkValidity = ApplicationManager.getApplication().executeOnPooledThread(Callable {
-            validateSdk()
-        })
         executablePathError =
             runWithModalProgressBlocking(project, config.pickerDirectOptionVersionCheckProgressTitle) {
                 futureExecutablePathValidity.get()
             }
-        sdkError = runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.validating_sdk")) {
-            futureSdkValidity.get()
-        }
+        sdkError = validateSdk()
         val validationResults = runCatching {
             (createComponent() as DialogPanel).validateAll()
         }.processErrorAndGet { error(it) }
@@ -134,11 +130,8 @@ abstract class GeneralConfigurable(
     }
 
     private fun canInstall(): Boolean {
-        val futureCanInstall = ApplicationManager.getApplication().executeOnPooledThread(Callable {
-            packageManager.canInstall()
-        })
         return runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.can_install")) {
-            futureCanInstall.get()
+            packageManager.canInstall()
         }
     }
 
@@ -181,6 +174,7 @@ abstract class GeneralConfigurable(
                 FileChooserDescriptor(true, false, false, false, false, false).withFileFilter(
                     config.pickerDirectOptionFileFilter
                 )
+            @Suppress("UnstableApiUsage")
             pathToExecutableField = textFieldWithBrowseButton(
                 project = project, fileChooserDescriptor = executableChooserDescriptor
             ).align(Align.FILL).bindText(
@@ -222,6 +216,7 @@ abstract class GeneralConfigurable(
 
     private fun Panel.configFilePicker() = row {
         label(CommonBundle.message("configurable.config_file.label"))
+        @Suppress("UnstableApiUsage")
         textFieldWithBrowseButton(project = project).align(Align.FILL).bindText(
             getter = { settings.configFilePath },
             setter = { settings.configFilePath = it.trim() },
@@ -240,6 +235,7 @@ abstract class GeneralConfigurable(
     private fun Panel.workingDirectoryPicker() = row {
         label(CommonBundle.message("configurable.working_directory.label"))
         val directoryChooserDescriptor = FileChooserDescriptor(false, true, false, false, false, false)
+        @Suppress("UnstableApiUsage")
         textFieldWithBrowseButton(
             project = project, fileChooserDescriptor = directoryChooserDescriptor
         ).align(Align.FILL).bindText(

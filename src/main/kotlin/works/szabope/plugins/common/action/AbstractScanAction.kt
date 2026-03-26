@@ -13,6 +13,7 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.jetbrains.python.PythonFileType
 import com.jetbrains.python.pyi.PyiFileType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.future.future
 import kotlinx.coroutines.launch
 import works.szabope.plugins.common.services.ImmutableSettingsData
 import works.szabope.plugins.common.services.Settings
@@ -26,6 +27,7 @@ abstract class AbstractScanAction : DumbAwareAction() {
     abstract fun getSettings(project: Project): Settings
     abstract fun getScanJobRegistry(project: Project): AbstractScanJobRegistry
     abstract fun getToolWindowId(): String
+
     abstract suspend fun scanAndAdd(
         project: Project,
         targets: Collection<VirtualFile>,
@@ -38,6 +40,7 @@ abstract class AbstractScanAction : DumbAwareAction() {
         val project = event.project ?: return
         val treeService = getTreeService(project)
         treeService.reinitialize(targets)
+        @Suppress("UnstableApiUsage")
         WriteIntentReadAction.run { FileDocumentManager.getInstance().saveAllDocuments() }
         val job = currentThreadCoroutineScope().launch(Dispatchers.IO) {
             val configuration = getSettings(project).getValidConfiguration().getOrNull() ?: return@launch
@@ -62,8 +65,11 @@ abstract class AbstractScanAction : DumbAwareAction() {
     }
 
     private fun isReadyToScan(project: Project, targets: Collection<VirtualFile>): Boolean {
-        return targets.isNotEmpty() && getScanJobRegistry(project).isAvailable() && getSettings(project)
-            .getValidConfiguration().isSuccess && isEligibleTargets(targets)
+        return targets.isNotEmpty() && getScanJobRegistry(project).isAvailable() && isEligibleTargets(targets) && currentThreadCoroutineScope().future {
+            getSettings(
+                project
+            ).getValidConfiguration().isSuccess
+        }.get()
     }
 
     private fun isEligibleTargets(targets: Collection<VirtualFile>) = targets.map { isEligible(it) }.all { it }
