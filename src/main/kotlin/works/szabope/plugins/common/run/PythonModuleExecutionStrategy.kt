@@ -1,21 +1,13 @@
 package works.szabope.plugins.common.run
 
+import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
-import com.intellij.execution.target.TargetProgressIndicator
-import com.intellij.execution.target.local.LocalTargetEnvironmentRequest
-import com.intellij.execution.target.value.constant
-import com.intellij.execution.target.value.targetPath
 import com.intellij.openapi.project.Project
 import com.jetbrains.python.console.addDefaultEnvironments
-import com.jetbrains.python.run.PythonModuleExecution
-import com.jetbrains.python.run.buildTargetedCommandLine
 import com.jetbrains.python.sdk.pythonSdk
-import com.jetbrains.python.sdk.targetEnvConfiguration
 import works.szabope.plugins.common.CommonBundle
-import java.nio.charset.Charset
 import java.nio.file.Path
 
-@Suppress("UnstableApiUsage")
 class PythonModuleExecutionStrategy(
     project: Project,
     moduleToRun: String,
@@ -27,29 +19,16 @@ class PythonModuleExecutionStrategy(
 
     init {
         val sdk = requireNotNull(project.pythonSdk) { CommonBundle.message("tool_executor.python_sdk_null") }
-        val targetEnvConfiguration = sdk.targetEnvConfiguration
-        val execution = PythonModuleExecution()
-        execution.moduleName = moduleToRun
-        execution.parameters += parameters.map { constant(it) }
-        execution.workingDir = workingDir?.let { targetPath(Path.of(it)) }
-
         val patchedEnvs = addDefaultEnvironments(sdk, envs.toMutableMap())
-        patchedEnvs.forEach {
-            execution.addEnvironmentVariable(it.key, it.value)
-        }
 
-        val request = targetEnvConfiguration?.createEnvironmentRequest(project) ?: LocalTargetEnvironmentRequest()
-        val targetEnvironment = request.prepareEnvironment(TargetProgressIndicator.EMPTY)
+        val commandLine = GeneralCommandLine()
+        commandLine.withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
+        commandLine.withWorkingDirectory(workingDir?.let { Path.of(it) })
+        commandLine.withExePath(requireNotNull(sdk.homePath) { CommonBundle.message("tool_executor.python_sdk_null") })
+        commandLine.withParameters("-m", moduleToRun)
+        commandLine.withParameters(parameters)
+        commandLine.withEnvironment(patchedEnvs)
 
-        val targetCommandLine = execution.buildTargetedCommandLine(
-            targetEnvironment = targetEnvironment,
-            sdk = sdk,
-            interpreterParameters = listOf(),
-            isUsePty = false,
-        )
-        val process = targetEnvironment.createProcess(targetCommandLine)
-        processHandler = ToolProcessHandler(
-            process, targetCommandLine.getCommandPresentation(targetEnvironment), Charset.defaultCharset()
-        )
+        processHandler = ToolProcessHandler(commandLine)
     }
 }
