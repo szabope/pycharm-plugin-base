@@ -3,7 +3,7 @@ package works.szabope.plugins.common.action
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 
-abstract class AbstractScanJobRegistry {
+open class AbstractScanJobRegistry {
     private var job: Job? = null
 
     fun set(job: Job) {
