@@ -1,7 +1,7 @@
 package works.szabope.plugins.common.dialog
 
-import works.szabope.plugins.common.services.ToolExecutorConfiguration
 import works.szabope.plugins.common.services.PluginPackageManagementException
+import works.szabope.plugins.common.services.ToolExecutorConfiguration
 
 interface PluginDialog {
     fun show()
@@ -10,53 +10,24 @@ interface PluginDialog {
 
 interface IDialogManager {
     fun showDialog(dialog: PluginDialog)
-
     fun createPyPackageInstallationErrorDialog(exception: PluginPackageManagementException.InstallationFailedException): PluginDialog
-
-    fun createToolExecutionErrorDialog(
-        configuration: ToolExecutorConfiguration,
-        result: String,
-        resultCode: Int
-    ): PluginDialog
-
+    fun createToolExecutionErrorDialog(configuration: ToolExecutorConfiguration, result: String, resultCode: Int): PluginDialog
     fun createFailedToExecuteErrorDialog(message: String): PluginDialog
-
-    fun createToolOutputParseErrorDialog(
-        configuration: ToolExecutorConfiguration, targets: String, json: String, error: String
-    ): PluginDialog
-
+    fun createToolOutputParseErrorDialog(configuration: ToolExecutorConfiguration, targets: String, json: String, error: String): PluginDialog
     fun createGeneralErrorDialog(failure: Throwable): PluginDialog
 
-    interface IShowDialog {
-        fun showPyPackageInstallationErrorDialog(exception: PluginPackageManagementException.InstallationFailedException) =
-            with(dialogManager) {
-                val dialog = createPyPackageInstallationErrorDialog(exception)
-                showDialog(dialog)
-            }
+    fun showPyPackageInstallationErrorDialog(exception: PluginPackageManagementException.InstallationFailedException) =
+        showDialog(createPyPackageInstallationErrorDialog(exception))
 
-        fun showGeneralErrorDialog(failure: Throwable) = with(dialogManager) {
-            val dialog = createGeneralErrorDialog(failure)
-            showDialog(dialog)
-        }
+    fun showGeneralErrorDialog(failure: Throwable) =
+        showDialog(createGeneralErrorDialog(failure))
 
-        fun showToolExecutionErrorDialog(configuration: ToolExecutorConfiguration, result: String, resultCode: Int) =
-            with(dialogManager) {
-                val dialog = createToolExecutionErrorDialog(configuration, result, resultCode)
-                showDialog(dialog)
-            }
+    fun showToolExecutionErrorDialog(configuration: ToolExecutorConfiguration, result: String, resultCode: Int) =
+        showDialog(createToolExecutionErrorDialog(configuration, result, resultCode))
 
-        fun showFailedToExecuteErrorDialog(message: String) = with(dialogManager) {
-            val dialog = createFailedToExecuteErrorDialog(message)
-            showDialog(dialog)
-        }
+    fun showFailedToExecuteErrorDialog(message: String) =
+        showDialog(createFailedToExecuteErrorDialog(message))
 
-        fun showToolOutputParseErrorDialog(
-            configuration: ToolExecutorConfiguration, targets: String, json: String, error: String
-        ) = with(dialogManager) {
-            val dialog = createToolOutputParseErrorDialog(configuration, targets, json, error)
-            showDialog(dialog)
-        }
-
-        val dialogManager: IDialogManager
-    }
+    fun showToolOutputParseErrorDialog(configuration: ToolExecutorConfiguration, targets: String, json: String, error: String) =
+        showDialog(createToolOutputParseErrorDialog(configuration, targets, json, error))
 }
