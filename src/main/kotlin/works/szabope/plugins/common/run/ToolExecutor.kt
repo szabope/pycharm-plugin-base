@@ -5,21 +5,19 @@ import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessOutputTypes
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.withContext
-import works.szabope.plugins.common.services.ImmutableSettingsData
+import works.szabope.plugins.common.services.ToolExecutorConfiguration
 
 data class ProcessLine(val text: String, val isError: Boolean)
 class ToolExecutionTerminatedException(val exitCode: Int) : Exception()
 
 abstract class ToolExecutor(private val project: Project, private val moduleToRun: String) {
     fun execute(
-        configuration: ImmutableSettingsData, parameters: List<String> = emptyList()
+        configuration: ToolExecutorConfiguration, parameters: List<String> = emptyList()
     ): Flow<ProcessLine> = channelFlow {
         val handler = if (configuration.useProjectSdk) {
             PythonModuleExecutionStrategy(project, moduleToRun, parameters, workingDir = configuration.workingDirectory)
