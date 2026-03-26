@@ -3,7 +3,7 @@ package works.szabope.plugins.common.validator
 import works.szabope.plugins.common.CommonBundle
 import java.io.File
 
-class FileValidator {
+object FileValidator {
     fun validateConfigFilePath(path: String?): String? {
         if (path == null) return null
         require(path.isNotBlank())
