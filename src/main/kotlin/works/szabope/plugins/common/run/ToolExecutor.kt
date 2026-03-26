@@ -20,10 +20,10 @@ abstract class ToolExecutor(private val project: Project, private val moduleToRu
         configuration: ToolExecutorConfiguration, parameters: List<String> = emptyList()
     ): Flow<ProcessLine> = channelFlow {
         val handler = if (configuration.useProjectSdk) {
-            PythonModuleExecutionStrategy(project, moduleToRun, parameters, workingDir = configuration.workingDirectory)
+            pythonModuleProcessHandler(project, moduleToRun, parameters, workingDir = configuration.workingDirectory)
         } else {
-            CommandLineExecutionStrategy(configuration.executablePath, configuration.workingDirectory, parameters)
-        }.processHandler
+            commandLineProcessHandler(configuration.executablePath, configuration.workingDirectory, parameters)
+        }
 
         val listener = object : ProcessListener {
             override fun onTextAvailable(event: ProcessEvent, outputType: com.intellij.openapi.util.Key<*>) {
