@@ -135,16 +135,7 @@ abstract class GeneralConfigurable(
         }
     }
 
-    private fun isLocalEnvironment(): Boolean {
-        val futureIsLocalEnvironment = ApplicationManager.getApplication().executeOnPooledThread(Callable {
-            packageManager.isLocalEnvironment()
-        })
-        return runWithModalProgressBlocking(
-            project, CommonBundle.message("configurable.progress.is_local_environment")
-        ) {
-            futureIsLocalEnvironment.get()
-        }
-    }
+    private fun isLocalEnvironment() = packageManager.isLocalEnvironment()
 
     private fun Row.installButton(enabled: ComponentPredicate) {
         val buttonClicked = AtomicBooleanProperty(false)
