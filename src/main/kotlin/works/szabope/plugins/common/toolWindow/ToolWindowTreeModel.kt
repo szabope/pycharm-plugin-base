@@ -4,7 +4,6 @@ import com.intellij.ide.projectView.PresentationData
 import com.intellij.navigation.NavigationItem
 import com.intellij.openapi.vfs.VirtualFile
 import org.jetbrains.annotations.Nls
-import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreeNode
@@ -37,13 +36,13 @@ class ToolWindowTreeModel(defaultRootNodeText: String) : DefaultTreeModel(RootNo
 
 class RootNode(text: String, val targets: Collection<VirtualFile>) : DefaultMutableTreeNode(text, true) {
 
-    private val issueCountStat = AtomicInteger(0)
+    private var issueCount = 0
 
     fun registerIssueAdded() {
-        issueCountStat.incrementAndGet()
+        issueCount++
     }
 
-    fun getIssueCount(): Int = issueCountStat.get()
+    fun getIssueCount(): Int = issueCount
 
     override fun clone(): Any = throw CloneNotSupportedException()
 }
