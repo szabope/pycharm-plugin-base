@@ -34,16 +34,7 @@ abstract class AbstractToolWindowPanel(private val project: Project, private val
             ActivityTracker.getInstance().inc()
         }
         border = JBUI.Borders.empty(1)
-        addAutoScrollToSource(object : AutoScrollConfig {
-            override var isAutoScrollToSource
-                get() = settings.isAutoScrollToSource
-                set(value) {
-                    settings.isAutoScrollToSource = value
-                }
-            override val tree
-                get() = this@AbstractToolWindowPanel.tree
-            override val placeholderActionId = scrollSourceId
-        })
+        addAutoScrollToSource(scrollSourceId)
         addToolbar(toolWindowId, mainActionGroupId)
         addPane(tree)
     }
@@ -68,23 +59,17 @@ abstract class AbstractToolWindowPanel(private val project: Project, private val
         TreeUIHelper.getInstance().installSmartExpander(tree)
     }
 
-    interface AutoScrollConfig {
-        var isAutoScrollToSource: Boolean
-        val tree: Tree
-        val placeholderActionId: String
-    }
-
-    private fun addAutoScrollToSource(config: AutoScrollConfig) {
+    private fun addAutoScrollToSource(placeholderActionId: String) {
         val autoScrollToSourceHandler = object : AutoScrollToSourceHandler() {
-            override fun isAutoScrollMode() = config.isAutoScrollToSource
+            override fun isAutoScrollMode() = settings.isAutoScrollToSource
 
             override fun setAutoScrollMode(state: Boolean) {
-                config.isAutoScrollToSource = state
+                settings.isAutoScrollToSource = state
             }
         }
-        autoScrollToSourceHandler.install(config.tree)
+        autoScrollToSourceHandler.install(tree)
         ActionManager.getInstance()
-            .replaceAction(config.placeholderActionId, autoScrollToSourceHandler.createToggleAction())
+            .replaceAction(placeholderActionId, autoScrollToSourceHandler.createToggleAction())
     }
 
     private fun addToolbar(toolWindowId: String, mainActionGroupId: String) {
