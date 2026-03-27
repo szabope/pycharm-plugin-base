@@ -21,7 +21,7 @@ import works.szabope.plugins.common.services.Settings
 
 abstract class ToolAnnotator<T : ToolMessage> : ExternalAnnotator<ToolAnnotator.AnnotatorInfo, List<T>>(), DumbAware {
 
-    abstract fun getSettingsInstance(project: Project): Settings
+    abstract fun getSettings(project: Project): Settings
     abstract fun scan(info: AnnotatorInfo, configuration: ToolExecutorConfiguration): List<T>
     abstract val inspectionId: String
     abstract fun createIntention(message: T): IntentionAction?
@@ -36,7 +36,7 @@ abstract class ToolAnnotator<T : ToolMessage> : ExternalAnnotator<ToolAnnotator.
 
     override fun doAnnotate(info: AnnotatorInfo): List<T> {
         val configuration = runBlocking {
-            getSettingsInstance(info.project).getValidConfiguration()
+            getSettings(info.project).getValidConfiguration()
         }.getOrNull() ?: return emptyList()
         return scan(info, configuration)
     }
