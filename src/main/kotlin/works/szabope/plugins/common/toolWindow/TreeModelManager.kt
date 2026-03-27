@@ -49,7 +49,7 @@ class TreeModelManager(severities: Set<String>) {
         return displayedSeverityLevels.contains(severityLevel)
     }
 
-    fun setSeverityLevelDisplayed(severityLevel: String, isDisplayed: Boolean): Boolean {
+    fun setSeverityLevelDisplayed(severityLevel: String, isDisplayed: Boolean) {
         val hadEffect = if (isDisplayed) {
             displayedSeverityLevels.add(severityLevel)
         } else {
@@ -58,7 +58,6 @@ class TreeModelManager(severities: Set<String>) {
         if (hadEffect) {
             reload()
         }
-        return hadEffect
     }
 
     fun updateTree() {
