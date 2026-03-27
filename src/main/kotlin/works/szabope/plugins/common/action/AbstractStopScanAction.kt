@@ -5,7 +5,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.progress.currentThreadCoroutineScope
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import kotlinx.coroutines.future.future
+import kotlinx.coroutines.launch
 import works.szabope.plugins.common.toolWindow.ITreeService
 
 abstract class AbstractStopScanAction : DumbAwareAction() {
@@ -14,10 +14,10 @@ abstract class AbstractStopScanAction : DumbAwareAction() {
     abstract fun getTreeService(project: Project): ITreeService
 
     override fun actionPerformed(event: AnActionEvent) {
-        currentThreadCoroutineScope().future {
+        currentThreadCoroutineScope().launch {
             event.project?.let { getScanJobRegistry(it).cancel() }
             event.project?.let { getTreeService(it) }?.lock()
-        }.get()
+        }
     }
 
     override fun update(event: AnActionEvent) {

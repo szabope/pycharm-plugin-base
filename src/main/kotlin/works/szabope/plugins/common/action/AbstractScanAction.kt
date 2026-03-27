@@ -13,8 +13,9 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.jetbrains.python.PythonFileType
 import com.jetbrains.python.pyi.PyiFileType
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.future.future
 import kotlinx.coroutines.launch
+import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
+import works.szabope.plugins.common.services.IncompleteConfigurationNotifier
 import works.szabope.plugins.common.services.ToolExecutorConfiguration
 import works.szabope.plugins.common.services.Settings
 import works.szabope.plugins.common.toolWindow.ITreeService
@@ -27,6 +28,8 @@ abstract class AbstractScanAction : DumbAwareAction() {
     abstract fun getSettings(project: Project): Settings
     abstract fun getScanJobRegistry(project: Project): AbstractScanJobRegistry
     abstract fun getToolWindowId(): String
+    abstract fun getIncompleteConfigurationNotifier(project: Project): IncompleteConfigurationNotifier
+    abstract fun getPackageManagementService(project: Project): AbstractPluginPackageManagementService
 
     abstract suspend fun scanAndAdd(
         project: Project,
@@ -43,7 +46,11 @@ abstract class AbstractScanAction : DumbAwareAction() {
         @Suppress("UnstableApiUsage")
         WriteIntentReadAction.run { FileDocumentManager.getInstance().saveAllDocuments() }
         val job = currentThreadCoroutineScope().launch(Dispatchers.IO) {
-            val configuration = getSettings(project).getValidConfiguration().getOrNull() ?: return@launch
+            val configuration = getSettings(project).getValidConfiguration().getOrElse {
+                val canInstall = getPackageManagementService(project).canInstallSync()
+                getIncompleteConfigurationNotifier(project).showWarningBubble(canInstall)
+                return@launch
+            }
             scanAndAdd(project, targets, configuration, treeService)
             treeService.lock()
         }
@@ -65,11 +72,8 @@ abstract class AbstractScanAction : DumbAwareAction() {
     }
 
     private fun isReadyToScan(project: Project, targets: Collection<VirtualFile>): Boolean {
-        return targets.isNotEmpty() && getScanJobRegistry(project).isAvailable() && isEligibleTargets(targets) && currentThreadCoroutineScope().future {
-            getSettings(
-                project
-            ).getValidConfiguration().isSuccess
-        }.get()
+        return targets.isNotEmpty() && getScanJobRegistry(project).isAvailable() && isEligibleTargets(targets) &&
+                getSettings(project).isToolApplicable()
     }
 
     private fun isEligibleTargets(targets: Collection<VirtualFile>) = targets.map { isEligible(it) }.all { it }
