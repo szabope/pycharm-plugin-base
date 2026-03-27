@@ -1,6 +1,5 @@
 package works.szabope.plugins.common.toolWindow
 
-import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.treeStructure.Tree
@@ -11,7 +10,6 @@ class TreeModelManager(severities: Set<String>) {
 
     private val displayedSeverityLevels = severities.toMutableSet()
     private val changeListeners = mutableSetOf<() -> Unit>()
-    private val logger = logger<TreeModelManager>()
     private val issues = mutableSetOf<TreeModelDataItem>()
     private val model = ToolWindowTreeModel(CommonBundle.message("toolwindow.name.empty"))
 
@@ -20,7 +18,7 @@ class TreeModelManager(severities: Set<String>) {
         if (isDisplayed(issue)) {
             addToTree(issue)
             updateTree()
-            logger.debug("Issue added to tree: $issue")
+            thisLogger().debug("Issue added to tree: $issue")
         }
     }
 
