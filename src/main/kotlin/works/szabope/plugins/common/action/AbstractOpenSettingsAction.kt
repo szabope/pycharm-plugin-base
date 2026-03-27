@@ -8,8 +8,7 @@ import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.wm.ToolWindowManager
 
-abstract class AbstractOpenSettingsAction : AnAction {
-    constructor() : super()
+abstract class AbstractOpenSettingsAction : AnAction() {
 
     abstract fun getConfigurableClass(): Class<out BoundSearchableConfigurable>
 
