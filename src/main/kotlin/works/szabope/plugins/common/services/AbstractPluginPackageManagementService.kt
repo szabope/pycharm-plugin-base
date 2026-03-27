@@ -40,19 +40,21 @@ abstract class AbstractPluginPackageManagementService {
 
     // open for testing purposes
     open suspend fun checkInstalledRequirement(): Result<Unit> {
-        if (isRemote()) return Result.failure<Unit>(
-            PluginPackageManagementException.SdkNotSupportedException()
-        ).also { packageInstalled = null }
+        if (isRemote()) {
+            packageInstalled = null
+            return Result.failure(PluginPackageManagementException.SdkNotSupportedException())
+        }
         val requirement = getRequirement()
         val packageManager =
             getPackageManager() ?: return Result.failure(UnsupportedOperationException("No package manager found"))
         @Suppress("UnstableApiUsage") val installedPackage =
-            packageManager.listInstalledPackages().firstOrNull { it.name == requirement.name } ?: return Result.failure<Unit>(
-                PluginPackageManagementException.PackageNotInstalledException()
-            ).also { packageInstalled = false }
+            packageManager.listInstalledPackages().firstOrNull { it.name == requirement.name } ?: run {
+                packageInstalled = false
+                return Result.failure(PluginPackageManagementException.PackageNotInstalledException())
+            }
         if (!getRequirement().match(PyPackage(installedPackage.name, installedPackage.version))) {
-            return Result.failure<Unit>(PluginPackageManagementException.PackageVersionObsoleteException())
-                .also { packageInstalled = false }
+            packageInstalled = false
+            return Result.failure(PluginPackageManagementException.PackageVersionObsoleteException())
         }
         packageInstalled = true
         return Result.success(Unit)
