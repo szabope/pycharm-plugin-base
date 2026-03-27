@@ -1,12 +1,14 @@
 package works.szabope.plugins.common.test.action
 
-import com.intellij.openapi.actionSystem.ActionUpdateThread
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.ide.DataManager
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.ex.ActionUtil
+import com.intellij.openapi.actionSystem.ex.ActionUtil.performAction
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.progress.withCurrentThreadCoroutineScopeBlocking
+import com.intellij.testFramework.PlatformTestUtil
+import org.junit.Assert
 import java.util.concurrent.ExecutionException
 
 /**
@@ -30,4 +32,45 @@ fun updateActionForTest(action: AnAction, event: AnActionEvent) {
         }
         else -> doUpdate.run()
     }
+}
+
+fun invokeNamedActionWithScope(actionId: String) {
+    val action = ActionManager.getInstance().getAction(actionId)!!
+    @Suppress("DEPRECATION") val context = DataManager.getInstance().dataContext
+    val event = AnActionEvent.createEvent(action, context, null, "", ActionUiKind.NONE, null)
+    PerformWithDocumentsCommitted.commitDocumentsIfNeeded(action, event)
+    updateActionForTest(action, event)
+    Assert.assertTrue(event.presentation.isEnabled)
+    performAction(action, event)
+}
+
+fun waitForIt(actionId: String, context: DataContext) {
+    val action = ActionManager.getInstance().getAction(actionId)
+    val event = AnActionEvent.createEvent(context, null, "", ActionUiKind.NONE, null)
+    PlatformTestUtil.waitWhileBusy {
+        updateActionForTest(action, event)
+        !event.presentation.isEnabled
+    }
+}
+
+fun markExcluded(context: DataContext) {
+    if (context.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)?.isNotEmpty() != true) {
+        throw IllegalArgumentException("Use `CommonDataKeys.VIRTUAL_FILE_ARRAY` for virtual files to exclude them")
+    }
+    val event = AnActionEvent.createEvent(context, null, "", ActionUiKind.NONE, null)
+    val action = ActionManager.getInstance().getAction("MarkExcludeRoot")
+    updateActionForTest(action, event)
+    Assert.assertTrue(event.presentation.isEnabled)
+    performAction(action, event)
+}
+
+fun unmark(context: DataContext) {
+    val event = AnActionEvent.createEvent(context, null, "", ActionUiKind.NONE, null)
+    if (event.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY).isNullOrEmpty()) {
+        throw IllegalArgumentException("Use `CommonDataKeys.VIRTUAL_FILE_ARRAY` for virtual files to (un)mark them")
+    }
+    val action = ActionManager.getInstance().getAction("UnmarkRoot")
+    updateActionForTest(action, event)
+    Assert.assertTrue(event.presentation.isEnabled)
+    performAction(action, event)
 }
