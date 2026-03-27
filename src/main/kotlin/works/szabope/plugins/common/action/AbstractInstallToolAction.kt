@@ -6,6 +6,8 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.progress.currentThreadCoroutineScope
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.MessageType
+import com.intellij.openapi.wm.ToolWindowManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -13,6 +15,7 @@ import works.szabope.plugins.common.services.AbstractPluginPackageManagementServ
 
 abstract class AbstractInstallToolAction(private val messageInstalled: String) : DumbAwareAction() {
 
+    abstract val toolWindowId: String
     abstract fun getPackageManager(project: Project): AbstractPluginPackageManagementService
     abstract fun handleFailure(failure: Throwable)
 
@@ -37,5 +40,7 @@ abstract class AbstractInstallToolAction(private val messageInstalled: String) :
         return ActionUpdateThread.BGT
     }
 
-    abstract fun notifyPanel(project: Project, message: String)
+    fun notifyPanel(project: Project, message: String) {
+        ToolWindowManager.getInstance(project).notifyByBalloon(toolWindowId, MessageType.INFO, message)
+    }
 }
