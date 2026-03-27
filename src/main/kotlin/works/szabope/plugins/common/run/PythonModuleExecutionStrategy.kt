@@ -17,12 +17,13 @@ fun pythonModuleProcessHandler(
 ): OSProcessHandler {
     val sdk = requireNotNull(project.pythonSdk) { CommonBundle.message("tool_executor.python_sdk_null") }
     val patchedEnvs = addDefaultEnvironments(sdk, envs.toMutableMap())
-    val commandLine = GeneralCommandLine()
-    commandLine.withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
-    commandLine.withWorkingDirectory(workingDir?.let { Path.of(it) })
-    commandLine.withExePath(requireNotNull(sdk.homePath) { CommonBundle.message("tool_executor.python_sdk_null") })
-    commandLine.withParameters("-m", moduleToRun)
-    commandLine.withParameters(parameters)
-    commandLine.withEnvironment(patchedEnvs)
+    val commandLine = GeneralCommandLine().apply {
+        withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
+        withWorkingDirectory(workingDir?.let { Path.of(it) })
+        withExePath(requireNotNull(sdk.homePath) { CommonBundle.message("tool_executor.python_sdk_null") })
+        withParameters("-m", moduleToRun)
+        withParameters(parameters)
+        withEnvironment(patchedEnvs)
+    }
     return ToolProcessHandler(commandLine)
 }
