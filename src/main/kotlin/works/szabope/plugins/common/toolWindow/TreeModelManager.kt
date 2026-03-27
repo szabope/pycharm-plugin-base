@@ -33,9 +33,7 @@ class TreeModelManager(severities: Set<String>) {
         resetRoot(targets)
     }
 
-    fun getRootScanPaths(): Collection<VirtualFile> {
-        return model.root.targets
-    }
+    fun getRootScanPaths(): Collection<VirtualFile> = model.root.targets
 
     fun install(tree: Tree) {
         tree.model = model
@@ -45,9 +43,7 @@ class TreeModelManager(severities: Set<String>) {
         changeListeners.add(listener)
     }
 
-    fun isSeverityLevelDisplayed(severityLevel: String): Boolean {
-        return displayedSeverityLevels.contains(severityLevel)
-    }
+    fun isSeverityLevelDisplayed(severityLevel: String): Boolean = severityLevel in displayedSeverityLevels
 
     fun setSeverityLevelDisplayed(severityLevel: String, isDisplayed: Boolean) {
         val hadEffect = if (isDisplayed) {
@@ -89,9 +85,7 @@ class TreeModelManager(severities: Set<String>) {
 
     private fun getIssueCount(): Int = model.root.getIssueCount()
 
-    private fun isDisplayed(issue: TreeModelDataItem): Boolean {
-        return isSeverityLevelDisplayed(issue.severity.level)
-    }
+    private fun isDisplayed(issue: TreeModelDataItem): Boolean = isSeverityLevelDisplayed(issue.severity.level)
 
     private fun findOrAddFileNode(file: String): StringNode {
         var fileNode = model.findFileNode(file)
