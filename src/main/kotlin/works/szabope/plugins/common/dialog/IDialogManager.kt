@@ -12,7 +12,6 @@ interface IDialogManager {
     fun showDialog(dialog: PluginDialog)
     fun createPyPackageInstallationErrorDialog(exception: PluginPackageManagementException.InstallationFailedException): PluginDialog
     fun createToolExecutionErrorDialog(configuration: ToolExecutorConfiguration, result: String, resultCode: Int): PluginDialog
-    fun createFailedToExecuteErrorDialog(message: String): PluginDialog
     fun createToolOutputParseErrorDialog(configuration: ToolExecutorConfiguration, targets: String, json: String, error: String): PluginDialog
     fun createGeneralErrorDialog(failure: Throwable): PluginDialog
 
@@ -24,9 +23,6 @@ interface IDialogManager {
 
     fun showToolExecutionErrorDialog(configuration: ToolExecutorConfiguration, result: String, resultCode: Int) =
         showDialog(createToolExecutionErrorDialog(configuration, result, resultCode))
-
-    fun showFailedToExecuteErrorDialog(message: String) =
-        showDialog(createFailedToExecuteErrorDialog(message))
 
     fun showToolOutputParseErrorDialog(configuration: ToolExecutorConfiguration, targets: String, json: String, error: String) =
         showDialog(createToolOutputParseErrorDialog(configuration, targets, json, error))
