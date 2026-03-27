@@ -8,7 +8,7 @@ import com.jetbrains.python.sdk.pythonSdk
 import org.jetbrains.annotations.TestOnly
 
 abstract class AbstractToolSettings<S : BaseState>(
-    internal val project: Project, defaultState: S
+    val project: Project, defaultState: S
 ) : SimplePersistentStateComponent<S>(defaultState), Settings {
 
     private var initialized = false
@@ -49,8 +49,13 @@ abstract class AbstractToolSettings<S : BaseState>(
         }
         return Result.success(
             ToolExecutorConfiguration(
-                executablePath, useProjectSdk, configFilePath, arguments,
-                workingDirectory, excludeNonProjectFiles, scanBeforeCheckIn
+                executablePath,
+                useProjectSdk,
+                configFilePath,
+                arguments,
+                workingDirectory,
+                excludeNonProjectFiles,
+                scanBeforeCheckIn
             )
         )
     }
