@@ -15,8 +15,9 @@ abstract class AbstractStopScanAction : DumbAwareAction() {
 
     override fun actionPerformed(event: AnActionEvent) {
         currentThreadCoroutineScope().launch {
-            event.project?.let { getScanJobRegistry(it).cancel() }
-            event.project?.let { getTreeService(it) }?.lock()
+            val project = event.project ?: return@launch
+            getScanJobRegistry(project).cancel()
+            getTreeService(project).lock()
         }
     }
 
