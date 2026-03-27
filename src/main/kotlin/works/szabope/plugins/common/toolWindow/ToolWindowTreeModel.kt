@@ -28,9 +28,8 @@ class ToolWindowTreeModel(defaultRootNodeText: String) : DefaultTreeModel(RootNo
 
     fun findFileNode(filePath: String): StringNode? {
         for (child in root.children()) {
-            if ((child as StringNode).userObject.equals(filePath)) {
-                return child
-            }
+            val node = child as? StringNode ?: continue
+            if (node.userObject == filePath) return node
         }
         return null
     }
