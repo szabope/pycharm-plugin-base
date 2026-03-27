@@ -24,10 +24,11 @@ val SUPPORTED_FILE_TYPES = arrayOf(PythonFileType.INSTANCE, PyiFileType.INSTANCE
 
 abstract class AbstractScanAction : DumbAwareAction() {
 
+    abstract val toolWindowId: String
+
     abstract fun getTreeService(project: Project): ITreeService
     abstract fun getSettings(project: Project): Settings
     abstract fun getScanJobRegistry(project: Project): AbstractScanJobRegistry
-    abstract fun getToolWindowId(): String
     abstract fun getIncompleteConfigurationNotifier(project: Project): IncompleteConfigurationNotifier
     abstract fun getPackageManagementService(project: Project): AbstractPluginPackageManagementService
 
@@ -55,7 +56,7 @@ abstract class AbstractScanAction : DumbAwareAction() {
             treeService.lock()
         }
         getScanJobRegistry(project).set(job)
-        ToolWindowManager.getInstance(project).getToolWindow(getToolWindowId())?.show()
+        ToolWindowManager.getInstance(project).getToolWindow(toolWindowId)?.show()
     }
 
     override fun update(event: AnActionEvent) {
