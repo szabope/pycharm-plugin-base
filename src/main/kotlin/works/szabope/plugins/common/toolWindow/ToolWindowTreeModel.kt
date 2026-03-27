@@ -25,13 +25,8 @@ class ToolWindowTreeModel(defaultRootNodeText: String) : DefaultTreeModel(RootNo
         getRoot().userObject = message
     }
 
-    fun findFileNode(filePath: String): StringNode? {
-        for (child in root.children()) {
-            val node = child as? StringNode ?: continue
-            if (node.userObject == filePath) return node
-        }
-        return null
-    }
+    fun findFileNode(filePath: String): StringNode? =
+        root.children().asSequence().filterIsInstance<StringNode>().firstOrNull { it.userObject == filePath }
 }
 
 class RootNode(text: String, val targets: Collection<VirtualFile>) : DefaultMutableTreeNode(text, true) {
