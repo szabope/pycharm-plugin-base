@@ -3,7 +3,6 @@ package works.szabope.plugins.common.test.dialog
 import com.intellij.openapi.ui.DialogWrapper
 import works.szabope.plugins.common.dialog.IDialogManager
 import works.szabope.plugins.common.dialog.PluginDialog
-import kotlin.collections.get
 
 abstract class AbstractTestDialogManager : IDialogManager {
 

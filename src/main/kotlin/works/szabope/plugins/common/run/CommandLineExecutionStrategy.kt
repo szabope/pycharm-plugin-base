@@ -7,10 +7,11 @@ import java.nio.file.Path
 fun commandLineProcessHandler(
     executablePath: String, workingDirectory: String?, parameters: List<String> = emptyList()
 ): OSProcessHandler {
-    val commandLine = GeneralCommandLine()
-    commandLine.withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
-    commandLine.withWorkingDirectory(workingDirectory?.let { Path.of(it) })
-    commandLine.withExePath(executablePath)
-    commandLine.withParameters(parameters)
+    val commandLine = GeneralCommandLine().apply {
+        withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
+        withWorkingDirectory(workingDirectory?.let { Path.of(it) })
+        withExePath(executablePath)
+        withParameters(parameters)
+    }
     return ToolProcessHandler(commandLine)
 }

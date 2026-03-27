@@ -36,11 +36,6 @@ abstract class AbstractPluginPackageManagementServiceStub(override val project: 
 
     private fun getInstalledPackages(): MutableList<InstalledPackage> {
         val sdk = project.pythonSdk ?: return mutableListOf()
-        var installedPackages = installedPackagesPerSdk[sdk]
-        if (installedPackages == null) {
-            installedPackages = mutableListOf()
-            installedPackagesPerSdk[sdk] = installedPackages
-        }
-        return installedPackages
+        return installedPackagesPerSdk.getOrPut(sdk) { mutableListOf() }
     }
 }

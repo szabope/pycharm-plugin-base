@@ -21,7 +21,6 @@ import com.jetbrains.python.sdk.flavors.VirtualEnvSdkFlavor
 import org.jdom.Element
 import org.jetbrains.annotations.NonNls
 import java.io.File
-import java.util.function.Consumer
 
 object PythonMockSdk {
     fun create(sdkPath: String, level: LanguageLevel = LanguageLevel.getLatest()) = create(
@@ -44,13 +43,8 @@ object PythonMockSdk {
         )
         sdkModificator.versionString = toVersionString(level)
 
-        createRoots(sdkPath).forEach(Consumer { vFile: VirtualFile? ->
-            sdkModificator.addRoot(vFile!!, OrderRootType.CLASSES)
-        })
-
-        listOf(*additionalRoots).forEach(Consumer { vFile: VirtualFile? ->
-            sdkModificator.addRoot(vFile!!, OrderRootType.CLASSES)
-        })
+        createRoots(sdkPath).forEach { sdkModificator.addRoot(it, OrderRootType.CLASSES) }
+        additionalRoots.forEach { sdkModificator.addRoot(it, OrderRootType.CLASSES) }
 
         val application = ApplicationManager.getApplication()
         val runnable = Runnable { sdkModificator.commitChanges() }
@@ -67,7 +61,7 @@ object PythonMockSdk {
     }
 
     private fun createRoots(@NonNls mockSdkPath: String): List<VirtualFile> {
-        val result = ArrayList<VirtualFile>()
+        val result = mutableListOf<VirtualFile>()
         val localFS = LocalFileSystem.getInstance()
         ContainerUtil.addIfNotNull(result, localFS.refreshAndFindFileByIoFile(File(mockSdkPath, "Lib")))
         ContainerUtil.addIfNotNull(
