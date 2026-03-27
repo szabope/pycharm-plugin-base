@@ -7,7 +7,7 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.openapi.wm.ToolWindowType
 import com.intellij.ui.content.ContentFactory
 
-abstract class MyToolWindowFactory(private val displayName: String) : ToolWindowFactory {
+abstract class AbstractToolWindowFactory(private val displayName: String) : ToolWindowFactory {
     abstract fun createPanel(project: Project): SimpleToolWindowPanel
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
