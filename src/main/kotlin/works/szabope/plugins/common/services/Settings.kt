@@ -10,6 +10,7 @@ interface Settings : SettingsData {
     override var configFilePath: String
     override var executablePath: String
 
+    fun isToolApplicable(): Boolean
     suspend fun initSettings(oldSettings: BasicSettingsData)
     suspend fun getValidConfiguration(): Result<ToolExecutorConfiguration>
 }

@@ -63,6 +63,11 @@ abstract class AbstractToolSettings<S : BaseState>(
         }
     }
 
+    override fun isToolApplicable(): Boolean {
+        if (workingDirectory.isNullOrBlank()) return false
+        return if (useProjectSdk) project.pythonSdk != null else executablePath.isNotBlank()
+    }
+
     fun isInitialized() = initialized
 
     @TestOnly

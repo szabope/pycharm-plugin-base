@@ -15,6 +15,14 @@ abstract class AbstractPluginPackageManagementService {
 
     abstract fun getRequirement(): PyRequirement
 
+    @Volatile private var packageInstalled: Boolean? = null
+
+    fun canInstallSync(): Boolean {
+        val sdk = project.pythonSdk ?: return false
+        if (PythonSdkUtil.isRemote(sdk)) return false
+        return packageInstalled != true
+    }
+
     suspend fun canInstall(): Boolean {
         val sdk = project.pythonSdk ?: return false
         return !PythonSdkUtil.isRemote(sdk) && checkInstalledRequirement().isFailure
@@ -32,24 +40,27 @@ abstract class AbstractPluginPackageManagementService {
 
     // open for testing purposes
     open suspend fun checkInstalledRequirement(): Result<Unit> {
-        if (isRemote()) return Result.failure(
+        if (isRemote()) return Result.failure<Unit>(
             PluginPackageManagementException.SdkNotSupportedException()
-        )
+        ).also { packageInstalled = null }
         val requirement = getRequirement()
         val packageManager =
             getPackageManager() ?: return Result.failure(UnsupportedOperationException("No package manager found"))
         @Suppress("UnstableApiUsage") val installedPackage =
-            packageManager.listInstalledPackages().firstOrNull { it.name == requirement.name } ?: return Result.failure(
+            packageManager.listInstalledPackages().firstOrNull { it.name == requirement.name } ?: return Result.failure<Unit>(
                 PluginPackageManagementException.PackageNotInstalledException()
-            )
+            ).also { packageInstalled = false }
         if (!getRequirement().match(PyPackage(installedPackage.name, installedPackage.version))) {
-            return Result.failure(PluginPackageManagementException.PackageVersionObsoleteException())
+            return Result.failure<Unit>(PluginPackageManagementException.PackageVersionObsoleteException())
+                .also { packageInstalled = false }
         }
+        packageInstalled = true
         return Result.success(Unit)
     }
 
     // open for testing purposes
     open suspend fun installRequirementWithCallback(callback: () -> Unit): Result<Unit> {
+        packageInstalled = null
         val packageManager = getPackageManagerUI(callback)
             ?: return Result.failure(PluginPackageManagementException.InstallationFailedException("No package manager found"))
         val requirement = getRequirement()
