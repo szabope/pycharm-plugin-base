@@ -46,7 +46,7 @@ abstract class AbstractToolValidator(protected val project: Project, private val
         return runCatching {
             val processHandler = CapturingProcessHandler(commandLine)
             val processOutput = processHandler.runProcess(5000, true).stdout
-            "(\\d+.\\d+.\\d+)".toRegex().find(processOutput)?.groups?.last()?.value
+            "(\\d+\\.\\d+\\.\\d+)".toRegex().find(processOutput)?.groups?.last()?.value
         }.getOrNull()
     }
 }
