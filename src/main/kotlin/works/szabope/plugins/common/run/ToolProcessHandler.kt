@@ -9,7 +9,7 @@ import com.intellij.util.io.BaseOutputReader
 class ToolProcessHandler(commandLine: GeneralCommandLine) : OSProcessHandler(commandLine) {
 
     init {
-        thisLogger().debug("Process handler created with command: $commandLine")
+        thisLogger().debug("Process handler created with command: ${commandLine.commandLineString}")
     }
 
     override fun readerOptions() = object : BaseOutputReader.Options() {

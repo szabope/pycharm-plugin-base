@@ -1,6 +1,7 @@
 package works.szabope.plugins.common.services
 
 import com.intellij.execution.ExecutionException
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.jetbrains.python.packaging.PyPackage
 import com.jetbrains.python.packaging.PyPackageManagerUI
@@ -8,6 +9,7 @@ import com.jetbrains.python.packaging.PyRequirement
 import com.jetbrains.python.packaging.management.PythonPackageManager
 import com.jetbrains.python.sdk.PythonSdkUtil
 import com.jetbrains.python.sdk.pythonSdk
+import java.util.concurrent.Callable
 
 abstract class AbstractPluginPackageManagementService {
 
@@ -30,7 +32,9 @@ abstract class AbstractPluginPackageManagementService {
 
     fun isLocalEnvironment(): Boolean {
         val sdk = project.pythonSdk ?: return false
-        return PythonSdkUtil.isVirtualEnv(sdk) || PythonSdkUtil.isCondaVirtualEnv(sdk)
+        return ApplicationManager.getApplication().executeOnPooledThread(Callable {
+            PythonSdkUtil.isVirtualEnv(sdk) || PythonSdkUtil.isCondaVirtualEnv(sdk)
+        }).get()
     }
 
     fun isRemote(): Boolean {
