@@ -1,7 +1,6 @@
 package works.szabope.plugins.common.dialog
 
 import works.szabope.plugins.common.services.PluginPackageManagementException
-import works.szabope.plugins.common.services.ToolExecutorConfiguration
 
 interface PluginDialog {
     fun show()
@@ -11,8 +10,8 @@ interface PluginDialog {
 interface IDialogManager {
     fun showDialog(dialog: PluginDialog)
     fun createPyPackageInstallationErrorDialog(exception: PluginPackageManagementException.InstallationFailedException): PluginDialog
-    fun createToolExecutionErrorDialog(configuration: ToolExecutorConfiguration, result: String, resultCode: Int?): PluginDialog
-    fun createToolOutputParseErrorDialog(configuration: ToolExecutorConfiguration, targets: String, json: String, error: String): PluginDialog
+    fun createToolExecutionErrorDialog(commandLine: String, result: String, resultCode: Int?): PluginDialog
+    fun createToolOutputParseErrorDialog(commandLine: String, targets: String, json: String, error: String): PluginDialog
     fun createGeneralErrorDialog(failure: Throwable): PluginDialog
 
     fun showPyPackageInstallationErrorDialog(exception: PluginPackageManagementException.InstallationFailedException) =
@@ -21,9 +20,9 @@ interface IDialogManager {
     fun showGeneralErrorDialog(failure: Throwable) =
         showDialog(createGeneralErrorDialog(failure))
 
-    fun showToolExecutionErrorDialog(configuration: ToolExecutorConfiguration, result: String, resultCode: Int?) =
-        showDialog(createToolExecutionErrorDialog(configuration, result, resultCode))
+    fun showToolExecutionErrorDialog(commandLine: String, result: String, resultCode: Int?) =
+        showDialog(createToolExecutionErrorDialog(commandLine, result, resultCode))
 
-    fun showToolOutputParseErrorDialog(configuration: ToolExecutorConfiguration, targets: String, json: String, error: String) =
-        showDialog(createToolOutputParseErrorDialog(configuration, targets, json, error))
+    fun showToolOutputParseErrorDialog(commandLine: String, targets: String, json: String, error: String) =
+        showDialog(createToolOutputParseErrorDialog(commandLine, targets, json, error))
 }
