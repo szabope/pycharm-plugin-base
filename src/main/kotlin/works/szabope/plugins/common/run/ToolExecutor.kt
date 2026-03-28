@@ -18,6 +18,8 @@ class ToolExecutionTerminatedException(val exitCode: Int) : Exception()
 abstract class ToolExecutor(private val project: Project, private val moduleToRun: String) {
     @Volatile var exitCode: Int? = null
         private set
+    @Volatile var commandLine: String? = null
+        private set
 
     fun execute(
         configuration: ToolExecutorConfiguration, parameters: List<String> = emptyList()
@@ -27,6 +29,7 @@ abstract class ToolExecutor(private val project: Project, private val moduleToRu
         } else {
             commandLineProcessHandler(configuration.executablePath, configuration.workingDirectory, parameters)
         }
+        commandLine = handler.commandLine
 
         val listener = object : ProcessListener {
             override fun onTextAvailable(event: ProcessEvent, outputType: com.intellij.openapi.util.Key<*>) {
