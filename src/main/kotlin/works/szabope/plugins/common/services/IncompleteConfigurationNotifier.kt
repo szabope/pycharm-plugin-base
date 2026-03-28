@@ -1,5 +1,6 @@
 package works.szabope.plugins.common.services
 
+import com.intellij.notification.ActionCenter
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionManager
@@ -13,6 +14,10 @@ abstract class IncompleteConfigurationNotifier(
     private val installActionId: String,
 ) {
     fun showWarningBubble(canInstall: Boolean) {
+        val alreadyShown = ActionCenter.getNotifications(project).any {
+            it.groupId == notificationGroupName && it.content == message && !it.isExpired
+        }
+        if (alreadyShown) return
         val openSettingsAction = ActionManager.getInstance().getAction(openSettingsActionId)
         val notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup(notificationGroupName)
         val notification =
