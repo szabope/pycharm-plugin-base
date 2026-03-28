@@ -2,10 +2,15 @@ package works.szabope.plugins.common.run
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.util.io.BaseDataReader
 import com.intellij.util.io.BaseOutputReader
 
 class ToolProcessHandler(commandLine: GeneralCommandLine) : OSProcessHandler(commandLine) {
+
+    init {
+        thisLogger().debug("Process handler created with command: $commandLine")
+    }
 
     override fun readerOptions() = object : BaseOutputReader.Options() {
         override fun policy(): BaseDataReader.SleepingPolicy {
