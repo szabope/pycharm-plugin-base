@@ -16,6 +16,9 @@ data class ProcessLine(val text: String, val isError: Boolean)
 class ToolExecutionTerminatedException(val exitCode: Int) : Exception()
 
 abstract class ToolExecutor(private val project: Project, private val moduleToRun: String) {
+    @Volatile var exitCode: Int? = null
+        private set
+
     fun execute(
         configuration: ToolExecutorConfiguration, parameters: List<String> = emptyList()
     ): Flow<ProcessLine> = channelFlow {
@@ -42,6 +45,7 @@ abstract class ToolExecutor(private val project: Project, private val moduleToRu
             }
 
             override fun processTerminated(event: ProcessEvent) {
+                exitCode = event.exitCode
                 if (isError(event)) {
                     close(ToolExecutionTerminatedException(event.exitCode))
                 } else {
