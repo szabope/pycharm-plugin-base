@@ -16,7 +16,7 @@ abstract class AbstractPluginPackageManagementServiceStub(override val project: 
     // support parallel runs
     private val installedPackagesPerSdk = WeakHashMap<Sdk, MutableList<InstalledPackage>>()
 
-    override suspend fun checkInstalledRequirement(): Result<Unit> {
+    override fun checkInstalledRequirement(): Result<Unit> {
         val installedPackage =
             getInstalledPackages().firstOrNull { it.name == getRequirement().name } ?: return Result.failure(
                 PluginPackageManagementException.PackageNotInstalledException()
@@ -27,7 +27,7 @@ abstract class AbstractPluginPackageManagementServiceStub(override val project: 
         return success(Unit)
     }
 
-    override suspend fun installRequirementWithCallback(callback: () -> Unit): Result<Unit> {
+    override fun installRequirementWithCallback(callback: () -> Unit): Result<Unit> {
         val r = getRequirement()
         getInstalledPackages().add(InstalledPackage(r.name, r.versionSpecs.firstOrNull()?.version))
         callback()

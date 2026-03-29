@@ -130,9 +130,7 @@ abstract class GeneralConfigurable(
     }
 
     private fun canInstall(): Boolean {
-        return runWithModalProgressBlocking(project, CommonBundle.message("configurable.progress.can_install")) {
-            packageManager.canInstall()
-        }
+        return packageManager.canInstall()
     }
 
     private fun isLocalEnvironment() = packageManager.isLocalEnvironment()
