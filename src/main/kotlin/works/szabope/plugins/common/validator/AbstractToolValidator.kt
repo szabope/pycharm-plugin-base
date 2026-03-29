@@ -31,7 +31,7 @@ abstract class AbstractToolValidator(protected val project: Project, private val
         return null
     }
 
-    suspend fun validateProjectSdk(): String? {
+    fun validateProjectSdk(): String? {
         getPackageManagementService().checkInstalledRequirement().onFailure {
             when (it) {
                 is PluginPackageManagementException.PackageNotInstalledException -> return messages.notInstalled

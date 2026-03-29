@@ -60,7 +60,7 @@ abstract class AbstractToolSettings<S : BaseState>(
         )
     }
 
-    private suspend fun isToolSet(): Boolean {
+    private fun isToolSet(): Boolean {
         return if (useProjectSdk) {
             project.pythonSdk != null && getPackageManagementService().checkInstalledRequirement().isSuccess
         } else {
