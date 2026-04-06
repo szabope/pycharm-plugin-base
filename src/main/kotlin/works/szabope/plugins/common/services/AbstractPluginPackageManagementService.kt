@@ -9,7 +9,8 @@ import com.jetbrains.python.packaging.PyPackageManager
 import com.jetbrains.python.packaging.PyPackageManagerUI
 import com.jetbrains.python.packaging.PyRequirement
 import com.jetbrains.python.sdk.PythonSdkUtil
-import com.jetbrains.python.sdk.pythonSdk
+import works.szabope.plugins.common.resolveModulePythonSdk
+import works.szabope.plugins.common.resolveModulePythonSdkNow
 import java.util.concurrent.Callable
 
 abstract class AbstractPluginPackageManagementService {
@@ -21,26 +22,26 @@ abstract class AbstractPluginPackageManagementService {
     @Volatile
     private var packageInstalled: Boolean? = null
 
-    fun canInstallSync(): Boolean {
-        val sdk = project.pythonSdk ?: return false
+    fun canInstallNow(): Boolean {
+        val sdk = project.resolveModulePythonSdkNow() ?: return false
         if (PythonSdkUtil.isRemote(sdk)) return false
         return packageInstalled != true
     }
 
-    fun canInstall(): Boolean {
-        val sdk = project.pythonSdk ?: return false
+    suspend fun canInstall(): Boolean {
+        val sdk = project.resolveModulePythonSdk() ?: return false
         return !PythonSdkUtil.isRemote(sdk) && checkInstalledRequirement().isFailure
     }
 
     fun isLocalEnvironment(): Boolean {
-        val sdk = project.pythonSdk ?: return false
+        val sdk = project.resolveModulePythonSdkNow() ?: return false
         return ApplicationManager.getApplication().executeOnPooledThread(Callable {
             PythonSdkUtil.isVirtualEnv(sdk) || PythonSdkUtil.isCondaVirtualEnv(sdk)
         }).get()
     }
 
     fun isRemote(): Boolean {
-        val sdk = project.pythonSdk ?: return false
+        val sdk = project.resolveModulePythonSdkNow() ?: return false
         return PythonSdkUtil.isRemote(sdk)
     }
 
@@ -50,7 +51,8 @@ abstract class AbstractPluginPackageManagementService {
             packageInstalled = null
             return Result.failure(PluginPackageManagementException.SdkNotSupportedException())
         }
-        val sdk = project.pythonSdk ?: return Result.failure(UnsupportedOperationException("No package manager found"))
+        val sdk = project.resolveModulePythonSdkNow()
+            ?: return Result.failure(UnsupportedOperationException("No SDK found"))
         val requirement = getRequirement()
         val installedPackage =
             ApplicationManager.getApplication().executeOnPooledThread(Callable {
@@ -87,7 +89,7 @@ abstract class AbstractPluginPackageManagementService {
                 callback()
             }
         }
-        return project.pythonSdk?.let { PyPackageManagerUI(project, it, l) }
+        return project.resolveModulePythonSdkNow()?.let { PyPackageManagerUI(project, it, l) }
     }
 }
 

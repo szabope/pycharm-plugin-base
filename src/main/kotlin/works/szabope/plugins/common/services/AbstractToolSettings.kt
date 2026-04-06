@@ -4,8 +4,9 @@ import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.components.SimplePersistentStateComponent
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
-import com.jetbrains.python.sdk.pythonSdk
 import org.jetbrains.annotations.TestOnly
+import works.szabope.plugins.common.resolveModulePythonSdk
+import works.szabope.plugins.common.resolveModulePythonSdkNow
 
 abstract class AbstractToolSettings<S : BaseState>(
     val project: Project, defaultState: S
@@ -24,7 +25,7 @@ abstract class AbstractToolSettings<S : BaseState>(
         if (isExecutableStateNull()) {
             oldSettings.executablePath?.let { executablePath = it }
         }
-        if (executablePath.isNotBlank() && project.pythonSdk == null) {
+        if (executablePath.isNotBlank() && project.resolveModulePythonSdk() == null) {
             useProjectSdk = false
         }
         if (isConfigFileStateNull()) {
@@ -60,9 +61,9 @@ abstract class AbstractToolSettings<S : BaseState>(
         )
     }
 
-    private fun isToolSet(): Boolean {
+    private suspend fun isToolSet(): Boolean {
         return if (useProjectSdk) {
-            project.pythonSdk != null && getPackageManagementService().checkInstalledRequirement().isSuccess
+            project.resolveModulePythonSdk() != null && getPackageManagementService().checkInstalledRequirement().isSuccess
         } else {
             executablePath.isNotBlank()
         }
@@ -70,7 +71,7 @@ abstract class AbstractToolSettings<S : BaseState>(
 
     override fun isToolApplicable(): Boolean {
         if (workingDirectory.isNullOrBlank()) return false
-        return if (useProjectSdk) project.pythonSdk != null else executablePath.isNotBlank()
+        return if (useProjectSdk) project.resolveModulePythonSdkNow() != null else executablePath.isNotBlank()
     }
 
     fun isInitialized() = initialized
