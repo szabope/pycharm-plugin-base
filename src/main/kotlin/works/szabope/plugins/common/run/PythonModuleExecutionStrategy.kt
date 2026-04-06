@@ -4,8 +4,8 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.project.Project
 import com.jetbrains.python.console.addDefaultEnvironments
-import com.jetbrains.python.sdk.pythonSdk
 import works.szabope.plugins.common.CommonBundle
+import works.szabope.plugins.common.resolveModulePythonSdkNow
 import java.nio.file.Path
 
 fun pythonModuleProcessHandler(
@@ -15,7 +15,7 @@ fun pythonModuleProcessHandler(
     envs: Map<String, String> = emptyMap(),
     workingDir: String?
 ): OSProcessHandler {
-    val sdk = requireNotNull(project.pythonSdk) { CommonBundle.message("tool_executor.python_sdk_null") }
+    val sdk = requireNotNull(project.resolveModulePythonSdkNow()) { CommonBundle.message("tool_executor.python_sdk_null") }
     val patchedEnvs = addDefaultEnvironments(sdk, envs.toMutableMap())
     val commandLine = GeneralCommandLine().apply {
         withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)

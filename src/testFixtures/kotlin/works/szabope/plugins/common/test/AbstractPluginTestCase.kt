@@ -63,12 +63,11 @@ abstract class AbstractPluginTestCase : BasePlatformTestCase() {
         runWriteActionAndWait {
             ProjectJdkTable.getInstance().addJdk(mockSdk)
         }
-        project.pythonSdk = mockSdk
+        project.pythonSdk = null // does nothing beyond reminding me not to count on it, e.g. uv
         module.pythonSdk = mockSdk
         try {
             action(mockSdk)
         } finally {
-            project.pythonSdk = null
             module.pythonSdk = null
             runWriteActionAndWait {
                 ProjectJdkTable.getInstance().removeJdk(mockSdk)

@@ -33,7 +33,7 @@ abstract class AbstractInstallToolAction(private val messageInstalled: String) :
     }
 
     override fun update(event: AnActionEvent) {
-        event.presentation.isEnabled = event.project?.let { getPackageManager(it).canInstallSync() } ?: false
+        event.presentation.isEnabled = event.project?.let { getPackageManager(it).canInstallNow() } ?: false
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread {

@@ -14,10 +14,9 @@ abstract class IncompleteConfigurationNotifier(
     private val installActionId: String,
 ) {
     fun showWarningBubble(canInstall: Boolean) {
-        val alreadyShown = ActionCenter.getNotifications(project).any {
+        ActionCenter.getNotifications(project).filter {
             it.groupId == notificationGroupName && it.content == message && !it.isExpired
-        }
-        if (alreadyShown) return
+        }.forEach { it.expire() }
         val openSettingsAction = ActionManager.getInstance().getAction(openSettingsActionId)
         val notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup(notificationGroupName)
         val notification =

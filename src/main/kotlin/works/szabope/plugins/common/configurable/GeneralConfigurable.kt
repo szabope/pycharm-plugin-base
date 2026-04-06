@@ -24,9 +24,10 @@ import com.intellij.ui.layout.ValidationInfoBuilder
 import com.intellij.ui.layout.and
 import com.jetbrains.python.sdk.PySdkPopupFactory
 import com.jetbrains.python.sdk.noInterpreterMarker
-import com.jetbrains.python.sdk.pythonSdk
 import org.jetbrains.annotations.VisibleForTesting
+import works.szabope.plugins.common.resolveModulePythonSdkNow
 import works.szabope.plugins.common.CommonBundle
+import works.szabope.plugins.common.countPythonSdkModulesNow
 import works.szabope.plugins.common.processErrorAndGet
 import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
 import works.szabope.plugins.common.services.Settings
@@ -130,10 +131,8 @@ abstract class GeneralConfigurable(
     }
 
     private fun canInstall(): Boolean {
-        return packageManager.canInstall()
+        return packageManager.canInstallNow()
     }
-
-    private fun isLocalEnvironment() = packageManager.isLocalEnvironment()
 
     private fun Row.installButton(enabled: ComponentPredicate) {
         val buttonClicked = AtomicBooleanProperty(false)
@@ -156,8 +155,7 @@ abstract class GeneralConfigurable(
 
     private fun Panel.toolPicker() = buttonsGroup(title = config.pickerTitle) {
         row {
-            @Suppress("KotlinConstantConditions") val executableOption =
-                radioButton(config.pickerDirectOptionTitle, !USE_PROJECT_SDK)
+            val executableOption = radioButton(config.pickerDirectOptionTitle, !USE_PROJECT_SDK)
             executableOption.component
             val executableChooserDescriptor =
                 FileChooserDescriptor(true, false, false, false, false, false).withFileFilter(
@@ -181,25 +179,28 @@ abstract class GeneralConfigurable(
         }.layout(RowLayout.PARENT_GRID)
         row {
             val sdkOption = radioButton(config.pickerSdkOptionTitle, USE_PROJECT_SDK).enabled(
-                project.pythonSdk != null
+                project.resolveModulePythonSdkNow() != null
             ).validationOnInput {
                 validateSdk()?.let { error(it) }
             }.validationOnApply { field ->
                 return@validationOnApply sdkError.takeIf { field.isSelected }?.let(::error)
             }
             sdkOption.component
-            label(project.pythonSdk?.let { PySdkPopupFactory.shortenNameInPopup(it, 50) } ?: noInterpreterMarker).align(
+            label(project.resolveModulePythonSdkNow()?.let { PySdkPopupFactory.shortenNameInPopup(it, 50) }
+                ?: noInterpreterMarker).align(
                 Align.FILL
             )
             installButton(sdkOption.selected)
         }.rowComment(
-            comment = if (packageManager.isRemote()) {
+            comment = if (project.countPythonSdkModulesNow() > 1) {
+                CommonBundle.message("configurable.multiple_sdks_in_use")
+            } else if (packageManager.isRemote()) {
                 "<code><icon src='AllIcons.General.ExclMark'></code>" + CommonBundle.message("configurable.remote_sdk_not_supported")
-            } else if (!isLocalEnvironment()) {
-                CommonBundle.message("configurable.system_wide_installation_warning")
-            } else {
+            } else if (packageManager.isLocalEnvironment()) {
                 ""
-            }, maxLineLength = MAX_LINE_LENGTH_WORD_WRAP
+            } else if (project.resolveModulePythonSdkNow() != null) {
+                CommonBundle.message("configurable.system_wide_installation_warning")
+            } else "", maxLineLength = MAX_LINE_LENGTH_WORD_WRAP
         ).layout(RowLayout.PARENT_GRID)
     }.bind(getter = { settings.useProjectSdk }, setter = { settings.useProjectSdk = it })
 

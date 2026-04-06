@@ -4,7 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.webcore.packaging.InstalledPackage
 import com.jetbrains.python.packaging.PyPackage
-import com.jetbrains.python.sdk.pythonSdk
+import works.szabope.plugins.common.resolveModulePythonSdkNow
 import works.szabope.plugins.common.services.AbstractPluginPackageManagementService
 import works.szabope.plugins.common.services.PluginPackageManagementException
 import java.util.*
@@ -35,7 +35,7 @@ abstract class AbstractPluginPackageManagementServiceStub(override val project: 
     }
 
     private fun getInstalledPackages(): MutableList<InstalledPackage> {
-        val sdk = project.pythonSdk ?: return mutableListOf()
+        val sdk = project.resolveModulePythonSdkNow() ?: return mutableListOf()
         return installedPackagesPerSdk.getOrPut(sdk) { mutableListOf() }
     }
 }

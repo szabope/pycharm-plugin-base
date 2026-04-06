@@ -48,7 +48,7 @@ abstract class AbstractScanAction : DumbAwareAction() {
         WriteIntentReadAction.run { FileDocumentManager.getInstance().saveAllDocuments() }
         val job = currentThreadCoroutineScope().launch(Dispatchers.IO) {
             val configuration = getSettings(project).getValidConfiguration().getOrElse {
-                val canInstall = getPackageManagementService(project).canInstallSync()
+                val canInstall = getPackageManagementService(project).canInstallNow()
                 getIncompleteConfigurationNotifier(project).showWarningBubble(canInstall)
                 return@launch
             }
