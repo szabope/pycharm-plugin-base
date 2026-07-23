@@ -22,7 +22,7 @@ import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.ComponentPredicate
 import com.intellij.ui.layout.ValidationInfoBuilder
 import com.intellij.ui.layout.and
-import com.jetbrains.python.sdk.PySdkPopupFactory
+import com.intellij.util.text.trimMiddle
 import com.jetbrains.python.sdk.noInterpreterMarker
 import org.jetbrains.annotations.VisibleForTesting
 import works.szabope.plugins.common.resolveModulePythonSdkNow
@@ -186,7 +186,7 @@ abstract class GeneralConfigurable(
                 return@validationOnApply sdkError.takeIf { field.isSelected }?.let(::error)
             }
             sdkOption.component
-            label(project.resolveModulePythonSdkNow()?.let { PySdkPopupFactory.shortenNameInPopup(it, 50) }
+            label(project.resolveModulePythonSdkNow()?.let { it.name.trimMiddle(50) }
                 ?: noInterpreterMarker).align(
                 Align.FILL
             )
