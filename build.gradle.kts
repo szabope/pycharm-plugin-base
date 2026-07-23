@@ -7,7 +7,6 @@ plugins {
     alias(libs.plugins.kover) // Gradle Kover Plugin
     alias(libs.plugins.intelliJPlatform) // IntelliJ Platform Gradle Plugin
     alias(libs.plugins.serialization) // Gradle Kotlin Serialization Plugin
-    alias(libs.plugins.changelog) // Gradle Changelog Plugin
     id("maven-publish")
     id("java-test-fixtures")
 }
@@ -16,7 +15,7 @@ group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 java {
