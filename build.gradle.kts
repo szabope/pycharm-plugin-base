@@ -4,7 +4,6 @@ import org.jetbrains.intellij.platform.gradle.extensions.intellijPlatform
 plugins {
     id("java") // Java support
     alias(libs.plugins.kotlin) // Kotlin support
-    alias(libs.plugins.kover) // Gradle Kover Plugin
     alias(libs.plugins.intelliJPlatform) // IntelliJ Platform Gradle Plugin
     alias(libs.plugins.serialization) // Gradle Kotlin Serialization Plugin
     id("maven-publish")

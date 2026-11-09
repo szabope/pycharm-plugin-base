@@ -4,33 +4,23 @@ import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.actionSystem.ex.ActionUtil.performAction
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.progress.withCurrentThreadCoroutineScopeBlocking
 import com.intellij.testFramework.PlatformTestUtil
 import org.junit.Assert
-import java.util.concurrent.ExecutionException
 
 /**
- * Calls [ActionUtil.updateAction] mimicking the production IntelliJ platform contract:
- * - [ActionUpdateThread.BGT] actions: dispatched to a background thread, under ReadAction, with a coroutine scope installed.
- * - EDT actions: called on the current thread, under ReadAction, with a coroutine scope installed.
+ * Calls [ActionUtil.updateAction] on the current thread, under ReadAction, with a coroutine scope installed,
+ * regardless of the action's [ActionUpdateThread].
+ *
+ * Same as the platform's own test helpers (e.g. `PlatformTestUtil.invokeNamedAction`). [ActionUpdateThread.BGT]
+ * actions are intentionally not dispatched to a background thread: tests run on EDT holding the write-intent lock,
+ * so blocking EDT on a pooled thread that needs a read lock deadlocks as soon as a background write action
+ * (e.g. indexing scan) becomes pending.
  */
 fun updateActionForTest(action: AnAction, event: AnActionEvent) {
-    val doUpdate = Runnable {
-        runReadAction {
-            withCurrentThreadCoroutineScopeBlocking { ActionUtil.updateAction(action, event) }
-        }
-    }
-    when (action.actionUpdateThread) {
-        ActionUpdateThread.BGT -> {
-            try {
-                ApplicationManager.getApplication().executeOnPooledThread(doUpdate).get()
-            } catch (e: ExecutionException) {
-                throw e.cause ?: e
-            }
-        }
-        else -> doUpdate.run()
+    runReadAction {
+        withCurrentThreadCoroutineScopeBlocking { ActionUtil.updateAction(action, event) }
     }
 }
 

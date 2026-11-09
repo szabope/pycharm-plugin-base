@@ -13,11 +13,10 @@ import com.jetbrains.python.PyNames
 import com.jetbrains.python.psi.LanguageLevel
 import com.jetbrains.python.sdk.PythonSdkAdditionalData
 import com.jetbrains.python.sdk.PythonSdkType
-import com.jetbrains.python.sdk.PythonSdkUtil
+import com.jetbrains.python.sdk.legacy.PythonSdkUtil
 import com.jetbrains.python.sdk.flavors.PyFlavorAndData
 import com.jetbrains.python.sdk.flavors.PyFlavorData
 import com.jetbrains.python.sdk.flavors.PythonSdkFlavor
-import com.jetbrains.python.sdk.flavors.VirtualEnvSdkFlavor
 import org.jdom.Element
 import org.jetbrains.annotations.NonNls
 import java.io.File
@@ -38,7 +37,7 @@ object PythonMockSdk {
         sdkModificator.homePath = "$sdkPath/bin/python"
         sdkModificator.sdkAdditionalData = PythonSdkAdditionalData(
             PyFlavorAndData(
-                PyFlavorData.Empty, VirtualEnvSdkFlavor.getInstance() as PythonSdkFlavor<PyFlavorData>
+                PyFlavorData.Empty, PythonSdkFlavor.UnknownFlavor.INSTANCE
             )
         )
         sdkModificator.versionString = toVersionString(level)
